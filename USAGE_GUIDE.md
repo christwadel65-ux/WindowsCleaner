@@ -15,7 +15,7 @@
 
 Le projet compile avec succès:
 ```bash
-cd "c:\Users\c.lecomte\Documents\dev_pyt\Windows Cleaner"
+
 dotnet build windows-cleaner.csproj
 # Résultat: 0 Erreurs, 2 Avertissements (nullability - non critiques)
 ```
