@@ -10,7 +10,7 @@ Outil professionnel en C# (WinForms) pour nettoyer et optimiser votre système W
 
 ### Compilation et Exécution
 ```powershell
-cd "c:\Users\c.lecomte\Documents\dev_pyt\Windows Cleaner"
+
 dotnet build
 dotnet run
 ```
