@@ -6,3 +6,7 @@ obj/
 .vs/
 
 .fake
+Output/
+publish-output/
+bin/
+obj/
