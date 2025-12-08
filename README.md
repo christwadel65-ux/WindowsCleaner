@@ -11,14 +11,14 @@ Outil professionnel en C# (WinForms + CLI) pour nettoyer, analyser et optimiser 
 
 ### Compilation et Exécution
 ```powershell
-
-dotnet build
-dotnet run
+dotnet build windows-cleaner.csproj --configuration Release
+dotnet run --project windows-cleaner.csproj
 ```
 
-### Exécution depuis Release
+### Exécution depuis le dossier compilé
 ```powershell
-.\Output\v1.0.6\windows-cleaner.exe
+# Après compilation Release
+.\bin\Release\net10.0-windows\windows-cleaner.exe
 ```
 
 ### Ligne de Commande (CLI)
@@ -168,29 +168,53 @@ Un script PowerShell pratique est inclus pour faciliter le développement :
 
 **Astuce** : Utilisez ce script avant de pousser vos changements pour maintenir un historique propre.
 
-## 📦 Distribution
+## 📂 Structure du Dépôt
 
-### Build Release
-```powershell
-dotnet publish -c Release -r win-x64 --self-contained false
+Le dépôt Git contient **uniquement le code source** pour maintenir une taille minimale :
+
+```
+├── *.cs                      # Fichiers C# (18 fichiers)
+├── windows-cleaner.csproj    # Configuration projet
+├── app.manifest              # Manifest application
+├── app.ico                   # Icône
+├── README.md                 # Documentation
+├── LICENSE                   # Licence MIT
+├── .gitignore                # Exclusions Git
+├── windows-cleaner.iss       # Script Inno Setup (local)
+├── scripts/                  # Scripts PowerShell
+├── docs/                     # Documentation (guides)
+└── create_icon.ps1           # Utilitaires
 ```
 
-### Installateur Inno Setup
-Le fichier `windows-cleaner.iss` permet de créer un installateur Windows professionnel.
+**Les dossiers EXCLUS du dépôt** (à générer localement) :
+- `bin/` - Binaires compilés
+- `obj/` - Fichiers intermédiaires
+- `Output/` - Builds Release
+- `publish-output/` - Sorties de publication
+
+## 🔨 Build et Distribution
+
+### Compiler une build Release
+```powershell
+dotnet build windows-cleaner.csproj --configuration Release
+```
+
+Build générée dans : `bin\Release\net10.0-windows\`
+
+### Créer un installateur
+Utilisez Inno Setup avec `windows-cleaner.iss` :
 
 ```powershell
-# Avec Inno Setup installé
+# Avec Inno Setup compilé
 iscc windows-cleaner.iss
 ```
 
 ### Package Portable
-Fichiers dans `Output/v1.0.6/` :
+Fichiers à distribuer depuis `bin\Release\net10.0-windows\` :
 - `windows-cleaner.exe` - Exécutable principal
-- `windows-cleaner.dll` - Assembly .NET
+- `windows-cleaner.dll` - Bibliothèque
 - `*.deps.json`, `*.runtimeconfig.json` - Configuration
 - `app.ico` - Icône de l'application
-- `run.bat` - Lanceur optionnel
-- `README.md`, `PACKAGE_INFO.md` - Documentation
 
 ## 📚 Documentation
 
