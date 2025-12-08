@@ -340,5 +340,188 @@ namespace WindowsCleaner
             
             return totalSize;
         }
+        
+        /// <summary>
+        /// Génère un rapport HTML professionnel de l'analyse disque
+        /// </summary>
+        public static string GenerateHtmlReport(DiskAnalysisResult result, string rootPath)
+        {
+            var sb = new System.Text.StringBuilder();
+            
+            // En-tête HTML
+            sb.AppendLine("<!DOCTYPE html>");
+            sb.AppendLine("<html lang=\"fr\">");
+            sb.AppendLine("<head>");
+            sb.AppendLine("    <meta charset=\"UTF-8\">");
+            sb.AppendLine("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
+            sb.AppendLine("    <title>Analyse d'Espace Disque - Windows Cleaner</title>");
+            sb.AppendLine("    <style>");
+            sb.AppendLine("        * { margin: 0; padding: 0; box-sizing: border-box; }");
+            sb.AppendLine("        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #333; padding: 20px; }");
+            sb.AppendLine("        .container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 15px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }");
+            sb.AppendLine("        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }");
+            sb.AppendLine("        .header h1 { font-size: 2.5em; margin-bottom: 10px; }");
+            sb.AppendLine("        .header p { font-size: 1.1em; opacity: 0.9; }");
+            sb.AppendLine("        .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; padding: 30px; background: #f8f9fa; }");
+            sb.AppendLine("        .summary-card { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; transition: transform 0.3s; }");
+            sb.AppendLine("        .summary-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.15); }");
+            sb.AppendLine("        .summary-card h3 { color: #667eea; font-size: 2.5em; margin-bottom: 10px; }");
+            sb.AppendLine("        .summary-card p { color: #666; font-size: 1.1em; }");
+            sb.AppendLine("        .content { padding: 30px; }");
+            sb.AppendLine("        .section { margin-bottom: 40px; }");
+            sb.AppendLine("        .section h2 { color: #667eea; font-size: 1.8em; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 3px solid #667eea; }");
+            sb.AppendLine("        .category-list { display: grid; gap: 15px; }");
+            sb.AppendLine("        .category-item { background: #f8f9fa; padding: 20px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; transition: all 0.3s; }");
+            sb.AppendLine("        .category-item:hover { background: #e9ecef; transform: translateX(5px); }");
+            sb.AppendLine("        .category-info { flex: 1; }");
+            sb.AppendLine("        .category-name { font-weight: bold; font-size: 1.2em; color: #333; margin-bottom: 5px; }");
+            sb.AppendLine("        .category-details { color: #666; font-size: 0.95em; }");
+            sb.AppendLine("        .progress-bar { flex: 0 0 200px; margin-left: 20px; }");
+            sb.AppendLine("        .progress-bg { background: #e9ecef; height: 30px; border-radius: 15px; overflow: hidden; position: relative; }");
+            sb.AppendLine("        .progress-fill { background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); height: 100%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 0.9em; transition: width 0.5s; }");
+            sb.AppendLine("        table { width: 100%; border-collapse: collapse; margin-top: 15px; }");
+            sb.AppendLine("        thead { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }");
+            sb.AppendLine("        th { padding: 15px; text-align: left; font-weight: 600; }");
+            sb.AppendLine("        td { padding: 12px 15px; border-bottom: 1px solid #e9ecef; }");
+            sb.AppendLine("        tbody tr:hover { background: #f8f9fa; }");
+            sb.AppendLine("        .file-path { color: #667eea; word-break: break-all; }");
+            sb.AppendLine("        .file-size { font-weight: bold; color: #333; }");
+            sb.AppendLine("        .footer { background: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 0.95em; }");
+            sb.AppendLine("    </style>");
+            sb.AppendLine("</head>");
+            sb.AppendLine("<body>");
+            
+            sb.AppendLine("    <div class=\"container\">");
+            
+            // Header
+            sb.AppendLine("        <div class=\"header\">");
+            sb.AppendLine("            <h1>Analyse d'Espace Disque</h1>");
+            sb.AppendLine($"            <p>Dossier analys\u00e9 : {HtmlEncode(rootPath)}</p>");
+            sb.AppendLine("        </div>");
+            
+            // Summary cards
+            sb.AppendLine("        <div class=\"summary\">");
+            sb.AppendLine("            <div class=\"summary-card\">");
+            sb.AppendLine($"                <h3>{result.TotalScannedFiles:N0}</h3>");
+            sb.AppendLine("                <p>Fichiers analys\u00e9s</p>");
+            sb.AppendLine("            </div>");
+            sb.AppendLine("            <div class=\"summary-card\">");
+            sb.AppendLine($"                <h3>{FormatBytes(result.TotalScannedSize)}</h3>");
+            sb.AppendLine("                <p>Espace total</p>");
+            sb.AppendLine("            </div>");
+            sb.AppendLine("            <div class=\"summary-card\">");
+            sb.AppendLine($"                <h3>{result.Categories.Count}</h3>");
+            sb.AppendLine("                <p>Cat\u00e9gories</p>");
+            sb.AppendLine("            </div>");
+            sb.AppendLine("            <div class=\"summary-card\">");
+            sb.AppendLine($"                <h3>{result.ScanDuration.TotalSeconds:F1}s</h3>");
+            sb.AppendLine("                <p>Dur\u00e9e du scan</p>");
+            sb.AppendLine("            </div>");
+            sb.AppendLine("        </div>");
+            
+            sb.AppendLine("        <div class=\"content\">");
+            
+            // Categories
+            if (result.Categories.Count > 0)
+            {
+                sb.AppendLine("            <div class=\"section\">");
+                sb.AppendLine("                <h2>R\u00e9partition par Cat\u00e9gorie</h2>");
+                sb.AppendLine("                <div class=\"category-list\">");
+                
+                foreach (var category in result.Categories.Take(15))
+                {
+                    sb.AppendLine("                    <div class=\"category-item\">");
+                    sb.AppendLine("                        <div class=\"category-info\">");
+                    sb.AppendLine($"                            <div class=\"category-name\">{HtmlEncode(category.Name)}</div>");
+                    sb.AppendLine($"                            <div class=\"category-details\">{category.FormattedSize} - {category.FileCount:N0} fichiers</div>");
+                    sb.AppendLine("                        </div>");
+                    sb.AppendLine("                        <div class=\"progress-bar\">");
+                    sb.AppendLine("                            <div class=\"progress-bg\">");
+                    sb.AppendLine($"                                <div class=\"progress-fill\" style=\"width: {category.Percentage:F1}%\">");
+                    sb.AppendLine($"                                    {category.Percentage:F1}%");
+                    sb.AppendLine("                                </div>");
+                    sb.AppendLine("                            </div>");
+                    sb.AppendLine("                        </div>");
+                    sb.AppendLine("                    </div>");
+                }
+                
+                sb.AppendLine("                </div>");
+                sb.AppendLine("            </div>");
+            }
+            
+            // Largest files
+            if (result.LargestFiles.Count > 0)
+            {
+                sb.AppendLine("            <div class=\"section\">");
+                sb.AppendLine("                <h2>Fichiers les Plus Volumineux</h2>");
+                sb.AppendLine("                <table>");
+                sb.AppendLine("                    <thead>");
+                sb.AppendLine("                        <tr>");
+                sb.AppendLine("                            <th>Fichier</th>");
+                sb.AppendLine("                            <th>Taille</th>");
+                sb.AppendLine("                            <th>Type</th>");
+                sb.AppendLine("                            <th>Derni\u00e8re modification</th>");
+                sb.AppendLine("                        </tr>");
+                sb.AppendLine("                    </thead>");
+                sb.AppendLine("                    <tbody>");
+                
+                foreach (var file in result.LargestFiles.Take(50))
+                {
+                    sb.AppendLine("                        <tr>");
+                    sb.AppendLine($"                            <td class=\"file-path\">{HtmlEncode(file.Path)}</td>");
+                    sb.AppendLine($"                            <td class=\"file-size\">{file.FormattedSize}</td>");
+                    sb.AppendLine($"                            <td>{HtmlEncode(file.Extension.ToUpper())}</td>");
+                    sb.AppendLine($"                            <td>{file.LastModified:yyyy-MM-dd HH:mm}</td>");
+                    sb.AppendLine("                        </tr>");
+                }
+                
+                sb.AppendLine("                    </tbody>");
+                sb.AppendLine("                </table>");
+                sb.AppendLine("            </div>");
+            }
+            
+            sb.AppendLine("        </div>");
+            
+            // Footer
+            sb.AppendLine("        <div class=\"footer\">");
+            sb.AppendLine($"            <p>Rapport g\u00e9n\u00e9r\u00e9 le {DateTime.Now:dd/MM/yyyy \u00e0 HH:mm:ss} par Windows Cleaner</p>");
+            sb.AppendLine("        </div>");
+            
+            sb.AppendLine("    </div>");
+            sb.AppendLine("</body>");
+            sb.AppendLine("</html>");
+            
+            return sb.ToString();
+        }
+        
+        /// <summary>
+        /// Encode les caractères spéciaux HTML
+        /// </summary>
+        private static string HtmlEncode(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return string.Empty;
+                
+            return text.Replace("&", "&amp;")
+                      .Replace("<", "&lt;")
+                      .Replace(">", "&gt;")
+                      .Replace("\"", "&quot;")
+                      .Replace("'", "&#39;");
+        }
+        
+        /// <summary>
+        /// Exporte le rapport HTML vers un fichier
+        /// </summary>
+        public static string ExportHtmlReport(DiskAnalysisResult result, string rootPath)
+        {
+            var html = GenerateHtmlReport(result, rootPath);
+            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            var filename = $"DiskAnalysis_{timestamp}.html";
+            var filepath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), filename);
+            
+            File.WriteAllText(filepath, html, System.Text.Encoding.UTF8);
+            
+            return filepath;
+        }
     }
 }
