@@ -608,11 +608,11 @@ namespace WindowsCleaner
         private void AboutMenuItem_Click(object? sender, EventArgs e)
         {
             // Author and MIT license (full text)
-            var author = "Auteur : c.lecomte";
+            var author = "Auteur : C.L";
             var licenseTitle = "Licence : MIT";
             var licenseText = @"MIT License
 
-Copyright (c) 2025 c.lecomte
+Copyright (c) 2025 C.L
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the ""Software""), to deal
@@ -906,6 +906,8 @@ SOFTWARE.";
             _cts = new CancellationTokenSource();
             var token = _cts.Token;
 
+            var sw = Stopwatch.StartNew();
+
             try
             {
                 // If performing real cleaning, confirm dangerous options
@@ -950,6 +952,22 @@ SOFTWARE.";
                 Logger.Log(LogLevel.Info, $"Terminé. Fichiers supprimés: {result.FilesDeleted}, Octets libérés: {result.BytesFreed}");
                 statusLabel.Text = "Terminé";
                 progressBar.Value = 100;
+
+                sw.Stop();
+
+                // Enregistrer les statistiques uniquement en mode réel
+                if (!dryRun)
+                {
+                    StatisticsManager.RecordCleaningSession(new CleaningStatistics
+                    {
+                        Timestamp = DateTime.Now,
+                        ProfileUsed = "Interface graphique",
+                        FilesDeleted = result.FilesDeleted,
+                        BytesFreed = result.BytesFreed,
+                        Duration = sw.Elapsed,
+                        WasDryRun = false
+                    });
+                }
             }
             catch (OperationCanceledException)
             {
