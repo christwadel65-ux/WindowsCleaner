@@ -1314,96 +1314,42 @@ SOFTWARE.";
             try
             {
                 var allStats = StatisticsManager.LoadAllStatistics();
-                
-                var report = new System.Text.StringBuilder();
-                report.AppendLine($"=== STATISTIQUES DE NETTOYAGE ===\n");
-                report.AppendLine($"Nombre de sessions : {allStats.Count}");
-                report.AppendLine($"Espace total libéré : {FormatBytes(allStats.Sum(s => s.BytesFreed))}");
-                report.AppendLine($"Fichiers totaux supprimés : {allStats.Sum(s => s.FilesDeleted):N0}\n");
-                
-                if (allStats.Count > 0)
+
+                if (allStats.Count == 0)
                 {
-                    report.AppendLine("--- DERNIÈRES SESSIONS ---");
-                    foreach (var session in allStats.OrderByDescending(s => s.Timestamp).Take(10))
-                    {
-                        report.AppendLine($"\n{session.Timestamp:yyyy-MM-dd HH:mm:ss}");
-                        report.AppendLine($"  Profil : {session.ProfileUsed}");
-                        report.AppendLine($"  Espace libéré : {FormatBytes(session.BytesFreed)}");
-                        report.AppendLine($"  Fichiers supprimés : {session.FilesDeleted}");
-                        report.AppendLine($"  Durée : {session.Duration:hh\\:mm\\:ss}");
-                    }
-                    
-                    // Proposer d'exporter en HTML
-                    report.AppendLine("\n\n--- EXPORT HTML DISPONIBLE ---");
-                    report.AppendLine("Utilisez 'Générer rapport HTML' pour un rapport visuel complet avec graphiques.");
-                }
-                else
-                {
-                    report.AppendLine("Aucune statistique disponible. Effectuez un nettoyage pour commencer.");
+                    MessageBox.Show("Aucune statistique disponible. Effectuez un nettoyage pour commencer.",
+                        "Statistiques", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    Logger.Log(LogLevel.Info, "Statistiques vides");
+                    return;
                 }
 
-                var resultForm = new Form
+                // Générer et ouvrir le rapport HTML
+                var htmlPath = StatisticsManager.ExportHtmlReport();
+
+                if (string.IsNullOrEmpty(htmlPath))
                 {
-                    Text = "Statistiques",
-                    Width = 800,
-                    Height = 600,
-                    StartPosition = FormStartPosition.CenterParent
-                };
-                
-                var panel = new Panel { Dock = DockStyle.Fill };
-                var textBox = new TextBox
+                    MessageBox.Show("Impossible de générer le rapport HTML.", "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                try
                 {
-                    Multiline = true,
-                    ScrollBars = ScrollBars.Both,
-                    Dock = DockStyle.Fill,
-                    Font = new Font("Consolas", 9),
-                    Text = report.ToString(),
-                    ReadOnly = true
-                };
-                
-                var btnExportHtml = new Button
-                {
-                    Text = "📊 Générer rapport HTML",
-                    Dock = DockStyle.Bottom,
-                    Height = 40,
-                    Font = new Font("Segoe UI", 10, FontStyle.Bold)
-                };
-                
-                btnExportHtml.Click += (s, ev) =>
-                {
-                    try
+                    Process.Start(new ProcessStartInfo
                     {
-                        var saveDialog = new SaveFileDialog
-                        {
-                            Filter = "Fichiers HTML|*.html",
-                            FileName = $"statistics_{DateTime.Now:yyyyMMdd_HHmmss}.html"
-                        };
-                        
-                        if (saveDialog.ShowDialog() == DialogResult.OK)
-                        {
-                            var html = StatisticsManager.GenerateHtmlReport();
-                            System.IO.File.WriteAllText(saveDialog.FileName, html);
-                            MessageBox.Show($"Rapport exporté :\n{saveDialog.FileName}", "Export réussi", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                            
-                            // Ouvrir le fichier
-                            if (MessageBox.Show("Ouvrir le rapport maintenant ?", "Ouvrir", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
-                            {
-                                Process.Start(new ProcessStartInfo(saveDialog.FileName) { UseShellExecute = true });
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"Erreur lors de l'export :\n{ex.Message}", "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-                };
-                
-                panel.Controls.Add(textBox);
-                panel.Controls.Add(btnExportHtml);
-                resultForm.Controls.Add(panel);
-                resultForm.ShowDialog(this);
-                
-                Logger.Log(LogLevel.Info, "Statistiques affichées");
+                        FileName = htmlPath,
+                        UseShellExecute = true
+                    });
+
+                    MessageBox.Show($"Rapport HTML généré et ouvert !\n\nEmplacement : {htmlPath}",
+                        "Statistiques", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Rapport généré mais impossible de l'ouvrir automatiquement.\n\nEmplacement : {htmlPath}\n\nErreur : {ex.Message}",
+                        "Statistiques", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+
+                Logger.Log(LogLevel.Info, "Statistiques affichées (rapport HTML)");
             }
             catch (Exception ex)
             {
