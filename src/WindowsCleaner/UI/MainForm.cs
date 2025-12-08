@@ -1177,43 +1177,26 @@ SOFTWARE.";
 
                 var result = await Task.Run(() => DiskAnalyzer.AnalyzeDirectory(path, 100, progress));
 
-                // Afficher les résultats
-                var report = new System.Text.StringBuilder();
-                report.AppendLine($"=== ANALYSE D'ESPACE DISQUE ===\n");
-                report.AppendLine($"Dossier : {path}");
-                report.AppendLine($"Fichiers totaux : {result.TotalScannedFiles:N0}");
-                report.AppendLine($"Taille totale : {FormatBytes(result.TotalScannedSize)}\n");
-                report.AppendLine("--- PAR CATÉGORIE ---");
-                foreach (var cat in result.Categories.OrderByDescending(c => c.TotalSize))
-                {
-                    report.AppendLine($"{cat.Name,-20} : {cat.FormattedSize,15} ({cat.Percentage:F1}%)");
-                }
+                // Générer et ouvrir le rapport HTML
+                var htmlPath = DiskAnalyzer.ExportHtmlReport(result, path);
                 
-                report.AppendLine("\n--- TOP 20 PLUS GROS FICHIERS ---");
-                foreach (var file in result.LargestFiles.Take(20))
+                // Ouvrir le rapport dans le navigateur par défaut
+                try
                 {
-                    report.AppendLine($"{FormatBytes(file.Size),15}  {file.Path}");
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = htmlPath,
+                        UseShellExecute = true
+                    });
+                    
+                    MessageBox.Show($"Rapport HTML généré et ouvert !\n\nEmplacement : {htmlPath}",
+                        "Analyse terminée", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
-
-                // Afficher dans une MessageBox avec possibilité de copier
-                var resultForm = new Form
+                catch (Exception ex)
                 {
-                    Text = "Résultats de l'analyse",
-                    Width = 900,
-                    Height = 700,
-                    StartPosition = FormStartPosition.CenterParent
-                };
-                var textBox = new TextBox
-                {
-                    Multiline = true,
-                    ScrollBars = ScrollBars.Both,
-                    Dock = DockStyle.Fill,
-                    Font = new Font("Consolas", 9),
-                    Text = report.ToString(),
-                    ReadOnly = true
-                };
-                resultForm.Controls.Add(textBox);
-                resultForm.ShowDialog(this);
+                    MessageBox.Show($"Rapport généré mais impossible de l'ouvrir automatiquement.\n\nEmplacement : {htmlPath}\n\nErreur : {ex.Message}",
+                        "Analyse terminée", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
 
                 Logger.Log(LogLevel.Info, $"Analyse terminée : {result.TotalScannedFiles} fichiers, {FormatBytes(result.TotalScannedSize)}");
                 statusLabel.Text = "Analyse terminée";
@@ -1264,51 +1247,50 @@ SOFTWARE.";
                 });
                 var duplicates = await Task.Run(() => DuplicateFinder.FindDuplicates(path, 1024, null, progress));
 
+                // Générer et ouvrir le rapport HTML
+                var htmlPath = DuplicateFinder.ExportHtmlReport(duplicates, path);
+                
                 if (duplicates.DuplicateGroups.Count == 0)
                 {
-                    MessageBox.Show("Aucun doublon trouvé !", "Résultat", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    // Ouvrir quand même le rapport qui affichera un message positif
+                    try
+                    {
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = htmlPath,
+                            UseShellExecute = true
+                        });
+                        
+                        MessageBox.Show($"Aucun doublon trouvé !\n\nRapport HTML généré : {htmlPath}",
+                            "Résultat", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    catch
+                    {
+                        MessageBox.Show("Aucun doublon trouvé !", "Résultat", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
                     Logger.Log(LogLevel.Info, "Aucun doublon trouvé");
                 }
                 else
                 {
-                    var report = new System.Text.StringBuilder();
-                    report.AppendLine($"=== DOUBLONS DÉTECTÉS : {duplicates.DuplicateGroups.Count} groupes ===\n");
-                    
-                    long totalWasted = duplicates.TotalWastedSpace;
-                    int groupNum = 1;
-                    foreach (var group in duplicates.DuplicateGroups.Take(50)) // Limiter à 50 groupes pour l'affichage
+                    // Ouvrir le rapport dans le navigateur par défaut
+                    try
                     {
-                        report.AppendLine($"Groupe {groupNum++} - {FormatBytes(group.Files[0].Size)} - {group.Files.Count} copies :");
-                        foreach (var file in group.Files)
-                            report.AppendLine($"  • {file}");
-                        report.AppendLine();
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = htmlPath,
+                            UseShellExecute = true
+                        });
+                        
+                        MessageBox.Show($"Rapport HTML généré et ouvert !\n\n{duplicates.DuplicateGroups.Count} groupes de doublons détectés\nEspace récupérable : {FormatBytes(duplicates.TotalWastedSpace)}\n\nEmplacement : {htmlPath}",
+                            "Doublons détectés", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
-                    
-                    if (duplicates.DuplicateGroups.Count > 50)
-                        report.AppendLine($"... et {duplicates.DuplicateGroups.Count - 50} autres groupes");
-                    
-                    report.AppendLine($"\nEspace récupérable : {FormatBytes(totalWasted)}");
-
-                    var resultForm = new Form
+                    catch (Exception ex)
                     {
-                        Text = $"Doublons détectés - {duplicates.DuplicateGroups.Count} groupes",
-                        Width = 900,
-                        Height = 700,
-                        StartPosition = FormStartPosition.CenterParent
-                    };
-                    var textBox = new TextBox
-                    {
-                        Multiline = true,
-                        ScrollBars = ScrollBars.Both,
-                        Dock = DockStyle.Fill,
-                        Font = new Font("Consolas", 9),
-                        Text = report.ToString(),
-                        ReadOnly = true
-                    };
-                    resultForm.Controls.Add(textBox);
-                    resultForm.ShowDialog(this);
+                        MessageBox.Show($"Rapport généré mais impossible de l'ouvrir automatiquement.\n\nEmplacement : {htmlPath}\n\nErreur : {ex.Message}",
+                            "Doublons détectés", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
 
-                    Logger.Log(LogLevel.Info, $"{duplicates.DuplicateGroups.Count} groupes de doublons trouvés, {FormatBytes(totalWasted)} récupérables");
+                    Logger.Log(LogLevel.Info, $"{duplicates.DuplicateGroups.Count} groupes de doublons trouvés, {FormatBytes(duplicates.TotalWastedSpace)} récupérables");
                 }
                 
                 statusLabel.Text = "Recherche terminée";
