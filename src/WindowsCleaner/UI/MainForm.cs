@@ -46,6 +46,8 @@ namespace WindowsCleaner
         private ToolStripStatusLabel statusLabel = null!;
 
         private CancellationTokenSource? _cts;
+        private bool _suppressLogs = false;
+        private bool _logSubscribed = false;
         private Color _accentColor = Color.FromArgb(0, 120, 215);
         private bool _isDark = false;
         private List<CleaningProfile> _profiles = new List<CleaningProfile>();
@@ -82,6 +84,7 @@ namespace WindowsCleaner
             LoadProfilesIntoCombo();
             Logger.Init();
             Logger.OnLog += Logger_OnLog;
+            _logSubscribed = true;
             
             // Charger les paramètres sauvegardés
             LoadSavedOptions();
@@ -644,6 +647,9 @@ namespace WindowsCleaner
 
         private void Logger_OnLog(DateTime ts, LogLevel level, string message)
         {
+            // Ignorer toute arrivée de log pendant/juste après annulation
+            if (_suppressLogs) return;
+
             if (InvokeRequired)
             {
                 BeginInvoke(new Action(() => AppendLog(ts, level, message)));
@@ -656,6 +662,8 @@ namespace WindowsCleaner
 
         private void AppendLog(DateTime ts, LogLevel level, string message)
         {
+            if (_suppressLogs || (_cts?.IsCancellationRequested ?? false)) return;
+
             var lvi = new ListViewItem(ts.ToString("yyyy-MM-dd HH:mm:ss"));
             lvi.SubItems.Add(level.ToString());
             lvi.SubItems.Add(message);
@@ -775,8 +783,17 @@ SOFTWARE.";
         {
             if (_cts != null && !_cts.IsCancellationRequested)
             {
+                _suppressLogs = true; // arrêter le journal visuel
                 _cts.Cancel();
+                btnCancel.Enabled = false; // éviter double clic
                 statusLabel.Text = "Annulation en cours...";
+
+                // Désabonner temporairement le logger pour bloquer toute arrivée
+                if (_logSubscribed)
+                {
+                    Logger.OnLog -= Logger_OnLog;
+                    _logSubscribed = false;
+                }
             }
         }
 
@@ -788,8 +805,17 @@ SOFTWARE.";
             btnDryRun.Visible = false;
             btnCancel.Visible = true;
             btnCancel.Enabled = true;
-            btnCancel.Top = 25;
+            // Positionner le bouton Annuler à l'emplacement des boutons d'action
+            btnCancel.Top = 80;
             btnCancel.Height = 40;
+            _suppressLogs = false; // réactiver l'affichage des logs pour ce run
+
+            // Ré-abonner le logger si besoin
+            if (!_logSubscribed)
+            {
+                Logger.OnLog += Logger_OnLog;
+                _logSubscribed = true;
+            }
             lvLogs.Items.Clear();
             progressBar.Value = 0;
             statusLabel.Text = dryRun ? "Dry run en cours..." : "Nettoyage en cours...";
@@ -1079,7 +1105,7 @@ SOFTWARE.";
                 Logger.Log(LogLevel.Info, $"Début du nettoyage ({(dryRun ? "dry-run" : "exécution")})...");
 
                 // Run the cleaner in a Task and periodically update progress
-                var task = Task.Run(() => Cleaner.RunCleanup(options, s => Logger.Log(LogLevel.Info, s)), token);
+                var task = Task.Run(() => Cleaner.RunCleanup(options, s => Logger.Log(LogLevel.Info, s), token), token);
 
                 while (!task.IsCompleted)
                 {
@@ -1140,6 +1166,7 @@ SOFTWARE.";
                 btnDryRun.Visible = true;
                 btnCancel.Enabled = false;
                 btnCancel.Visible = false;
+                _suppressLogs = false; // réinitialiser pour la prochaine exécution
                 _cts = null;
             }
         }
