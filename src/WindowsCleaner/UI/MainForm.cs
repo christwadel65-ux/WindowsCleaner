@@ -1784,7 +1784,7 @@ SOFTWARE.";
             {
                 // Configurer avec votre dépôt GitHub
                 // Format: "propriétaire", "nom-du-repo"
-                var updateManager = new UpdateManager("christwadel65-ux", "Windows-Cleaner", "1.0.8");
+                var updateManager = new UpdateManager("christwadel65-ux", "Windows-Cleaner", "2.0.0");
                 
                 if (silent)
                 {
