@@ -136,7 +136,7 @@ Windows Cleaner/
 - ✅ Tests de performance (MemoryOptimizationTests.cs)
 - ✅ Réduction mémoire estimée: 30-70% selon l'opération
 
-### 4.2 Version 1.1.0 (Planifiée)
+### 4.2 Version 1.0.9 (Planifiée)
 
 **Objectif:** Nouvelles fonctionnalités utilisateur
 

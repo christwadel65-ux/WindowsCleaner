@@ -358,14 +358,53 @@ namespace WindowsCleaner
                 var script = @"
                     $report = @()
                     
-                    # Obtenir les disques
-                    $disks = Get-CimInstance Win32_DiskDrive
-                    
-                    foreach ($disk in $disks) {
-                        $report += ""Disque: $($disk.Model)""
-                        $report += ""Santé: $($disk.Status)""
-                        $report += ""Taille: $([Math]::Round($disk.Size / 1GB)) GB""
-                        $report += """"
+                    try {
+                        # Méthode 1: Win32_DiskDrive (avec timeout)
+                        $disks = Get-CimInstance -ClassName Win32_DiskDrive -ErrorAction SilentlyContinue
+                        
+                        if ($disks) {
+                            $report += ""=== DISQUES PHYSIQUES ===""
+                            foreach ($disk in $disks) {
+                                $report += """"
+                                $report += ""Disque: $($disk.Model)""
+                                $report += ""Statut: $($disk.Status)""
+                                $report += ""Interface: $($disk.InterfaceType)""
+                                $sizeGB = [Math]::Round($disk.Size / 1GB, 2)
+                                $report += ""Taille: $sizeGB GB""
+                                
+                                # Informations SMART si disponibles
+                                $partitions = $disk | Get-CimAssociatedInstance -ResultClassName Win32_DiskPartition -ErrorAction SilentlyContinue
+                                if ($partitions) {
+                                    $report += ""Partitions: $($partitions.Count)""
+                                }
+                            }
+                        }
+                        
+                        # Méthode 2: Volumes logiques
+                        $volumes = Get-Volume -ErrorAction SilentlyContinue | Where-Object { $_.DriveLetter }
+                        
+                        if ($volumes) {
+                            $report += """"
+                            $report += ""=== VOLUMES ===""
+                            foreach ($vol in $volumes) {
+                                $report += """"
+                                $report += ""Lecteur: $($vol.DriveLetter):""
+                                $report += ""Type: $($vol.FileSystemType)""
+                                $report += ""Santé: $($vol.HealthStatus)""
+                                $sizeGB = [Math]::Round($vol.Size / 1GB, 2)
+                                $freeGB = [Math]::Round($vol.SizeRemaining / 1GB, 2)
+                                $report += ""Taille: $sizeGB GB (Libre: $freeGB GB)""
+                            }
+                        }
+                        
+                        # Si aucune méthode n'a fonctionné
+                        if (-not $disks -and -not $volumes) {
+                            $report += ""Aucune information disque disponible""
+                            $report += ""(Droits administrateur requis pour SMART complet)""
+                        }
+                        
+                    } catch {
+                        $report += ""Erreur lors de la récupération: $($_.Exception.Message)""
                     }
                     
                     $report -join ""`r`n""
@@ -374,7 +413,7 @@ namespace WindowsCleaner
                 var psi = new ProcessStartInfo
                 {
                     FileName = "powershell.exe",
-                    Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"{script}\"",
+                    Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"{script.Replace("\"", "\"\"")}\"",
                     CreateNoWindow = true,
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
@@ -386,10 +425,16 @@ namespace WindowsCleaner
                     return "Impossible d'accéder aux données SMART";
                 
                 var output = process.StandardOutput.ReadToEnd();
+                var error = process.StandardError.ReadToEnd();
                 process.WaitForExit();
                 
+                if (!string.IsNullOrEmpty(error))
+                {
+                    log?.Invoke($"Avertissement PowerShell: {error}");
+                }
+                
                 log?.Invoke("Rapport SMART récupéré");
-                return string.IsNullOrEmpty(output) ? "Aucun disque détecté" : output;
+                return string.IsNullOrEmpty(output.Trim()) ? "Aucun disque détecté (vérifiez les droits admin)" : output;
             }
             catch (Exception ex)
             {

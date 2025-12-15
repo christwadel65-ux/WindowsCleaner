@@ -46,6 +46,20 @@ namespace WindowsCleaner
         public bool CleanSearchHistory { get; set; }
         public bool CleanClipboard { get; set; }
         
+        // Application caches
+        public bool CleanVsCodeCache { get; set; }
+        public bool CleanNugetCache { get; set; }
+        public bool CleanMavenCache { get; set; }
+        public bool CleanNpmCache { get; set; }
+        public bool CleanGameCaches { get; set; }
+        
+        // Disk optimization
+        public bool OptimizeSsd { get; set; }
+        public bool CheckDiskHealth { get; set; }
+        
+        // Broken shortcuts
+        public bool CleanBrokenShortcuts { get; set; }
+        
         // Options d'exécution
         public bool Verbose { get; set; }
         public bool CreateBackup { get; set; }
@@ -86,6 +100,9 @@ namespace WindowsCleaner
                 CleanOrphanedFiles = true,
                 CleanApplicationLogs = true,
                 ClearMemoryCache = true,
+                CleanBrokenShortcuts = true,
+                OptimizeSsd = true,
+                CheckDiskHealth = true,
                 Verbose = true,
                 CreateBackup = true
             };
@@ -107,7 +124,12 @@ namespace WindowsCleaner
                 CleanPythonCache = true,
                 CleanGitCache = true,
                 CleanDocker = true,
+                CleanVsCodeCache = true,
+                CleanNugetCache = true,
+                CleanMavenCache = true,
+                CleanNpmCache = true,
                 CleanOrphanedFiles = true,
+                OptimizeSsd = true,
                 Verbose = true
             };
         }
@@ -163,7 +185,18 @@ namespace WindowsCleaner
                 CleanRecentDocuments = this.CleanRecentDocuments,
                 CleanWindowsTimeline = this.CleanWindowsTimeline,
                 CleanSearchHistory = this.CleanSearchHistory,
-                CleanClipboard = this.CleanClipboard
+                CleanClipboard = this.CleanClipboard,
+                // Application caches
+                CleanVsCodeCache = this.CleanVsCodeCache,
+                CleanNugetCache = this.CleanNugetCache,
+                CleanMavenCache = this.CleanMavenCache,
+                CleanNpmCache = this.CleanNpmCache,
+                CleanGameCaches = this.CleanGameCaches,
+                // Disk optimization
+                OptimizeSsd = this.OptimizeSsd,
+                CheckDiskHealth = this.CheckDiskHealth,
+                // Broken shortcuts
+                CleanBrokenShortcuts = this.CleanBrokenShortcuts
             };
         }
     }

@@ -1,11 +1,117 @@
-# Windows Cleaner v1.0.8
+# Windows Cleaner v2.0.0
 
 [![.NET](https://img.shields.io/badge/.NET-10.0-blue.svg)](https://dotnet.microsoft.com/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](../LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)](https://www.microsoft.com/windows)
-[![Version](https://img.shields.io/badge/version-1.0.8-brightgreen.svg)](https://github.com/christwadel65-ux/Windows-Cleaner/releases)
+[![Version](https://img.shields.io/badge/version-2.0.0-brightgreen.svg)](https://github.com/christwadel65-ux/Windows-Cleaner/releases)
 
-Outil professionnel en C# (WinForms + CLI) pour nettoyer, analyser et optimiser votre système Windows. Interface moderne avec support du mode sombre, système de profils, CLI complet, statistiques, et 12 nouvelles fonctionnalités majeures.
+Outil professionnel en C# (WinForms + CLI) pour nettoyer, analyser et optimiser votre système Windows. Interface moderne avec support du mode sombre, système de profils, CLI complet, statistiques, mise à jour automatique, et options de nettoyage développeur.
+
+## 🆕 Nouveautés v2.0.0 (15 décembre 2025)
+
+### ✨ Version Majeure - Refonte Complète
+
+#### 🔄 Système de Mise à Jour Automatique
+- **Vérification automatique au démarrage** : L'application vérifie les nouvelles versions sur GitHub
+- **Menu "Aide > 🔄 Vérifier les mises à jour"** : Vérification manuelle à tout moment
+- **Notification discrète** : Alerte dans la barre de statut si mise à jour disponible
+- **Dialogue informatif** : Affichage de la version, date et notes de version
+- **Ouverture directe** : Accès à la page de téléchargement en un clic
+- **API GitHub** : Récupération automatique des dernières releases
+- **Versionnage sémantique** : Comparaison intelligente des versions (X.Y.Z)
+- **Contrôle utilisateur** : Pas de téléchargement automatique - vous décidez
+
+**Exemple d'utilisation :**
+1. Lancez l'application → Vérification automatique en arrière-plan
+2. Si mise à jour disponible : `✨ Nouvelle version disponible : 2.0.0`
+3. Cliquez sur **Aide > 🔄 Vérifier les mises à jour**
+4. Dialogue avec détails → Clic sur "Oui" → Page GitHub s'ouvre
+5. Téléchargez et installez la nouvelle version
+
+#### 💻 Interface de Nettoyage Développeur
+**Nouveau groupe "💻 Nettoyage Développeur"** avec 10 options spécialisées :
+
+1. **📦 VS Code** - Nettoie le cache Visual Studio Code
+2. **📦 NuGet** - Nettoie le cache de packages NuGet
+3. **📦 Maven** - Nettoie le repository local Maven (~/.m2)
+4. **📦 npm** - Nettoie le cache npm global
+5. **🐳 Docker** - Nettoie images, conteneurs et volumes inutilisés
+6. **📁 node_modules** - Supprime les vieux dossiers node_modules (> 30 jours)
+7. **🔨 Visual Studio** - Nettoie les dossiers obj, bin, .vs
+8. **🐍 Python** - Supprime les caches __pycache__ et fichiers .pyc
+9. **📂 Git** - Optimise les repositories avec garbage collection
+10. **🎮 Jeux (Steam/Epic)** - Nettoie les caches de jeux
+
+**Intégration complète :**
+- Profil "Nettoyage Développeur" enrichi avec toutes ces options
+- Boutons "✅ Tout" et "❌ Rien" incluent les 10 nouvelles options
+- Statistiques détaillées par type de cache dans les rapports HTML
+- Sauvegarde automatique des sessions de nettoyage
+
+#### 📊 Statistiques SSD Améliorées
+- **Optimisations TRIM** : Compteur fonctionnel (affiche X session(s))
+- **Vérifications SMART** : Compteur fonctionnel avec rapport détaillé
+- **Détection multi-niveaux** : Win32_DiskDrive + Get-Volume pour compatibilité maximale
+- **Rapport enrichi** : Modèle, statut, interface, taille, partitions, santé des volumes
+- **Sauvegarde automatique** : Chaque optimisation crée une entrée dans les statistiques
+
+**Format du rapport SMART :**
+```
+=== DISQUES PHYSIQUES ===
+Disque: Samsung SSD 970 EVO Plus
+Statut: OK
+Interface: NVMe
+Taille: 500 GB
+Partitions: 3
+
+=== VOLUMES ===
+Lecteur: C:
+Type: NTFS
+Santé: Healthy
+Taille: 465.75 GB (Libre: 123.45 GB)
+```
+
+## 📋 Historique des Versions
+
+### v1.0.8 (12 décembre 2025)
+
+#### 🔗 Suppression des Raccourcis Cassés
+- **Détection automatique** des raccourcis (.lnk) dont la cible n'existe plus
+- **Scan intelligent** : Bureau, Menu Démarrer, Documents Récents, Dossier Liens
+- **Vérification via COM** (WScript.Shell) pour validation précise
+- **Suppression sécurisée** avec support du mode Dry-Run
+- **Aucun privilège admin requis**
+- Améliore la propreté du bureau et des menus
+
+#### ☑ Boutons de Sélection Rapide
+- **Bouton "✅ Tout"** : Coche toutes les options de nettoyage en un clic
+- **Bouton "❌ Rien"** : Décoche toutes les options rapidement
+- **Emplacement** : Groupe Actions, à côté des boutons Simuler/Nettoyer
+- **Couleurs intelligentes** :
+  - 🟢 VERT VIF si tout est coché
+  - 🔴 ROUGE VIF si rien n'est coché
+  - 🟠 ORANGE VIF si sélection partielle
+- **Infobulles explicites** : Description au survol de la souris
+- **Bascule automatique** vers le profil "Personnalisé (manuel)"
+- **Sélectif** : Affecte uniquement les options de nettoyage (préserve Mode verbeux et Rapport détaillé)
+
+#### 🎨 Améliorations de l'Interface
+- **Infobulles contextuelles** sur tous les boutons d'action
+  - 🔍 Simuler : "Simuler le nettoyage sans supprimer (Mode test sûr)"
+  - 🧹 Nettoyer : "Exécuter le nettoyage avec suppression réelle (Vérifiez d'abord)"
+  - ✅ Tout : "Cocher toutes les options en un clic"
+  - ❌ Rien : "Décocher toutes les options en un clic"
+- **Design Material moderne** avec palette de couleurs vives
+- **Feedback visuel immédiat** sur l'état de sélection
+
+#### 🔧 Améliorations Techniques
+- Migration complète vers **.NET 10.0-windows**
+- Restructuration des méthodes d'énumération (correction erreurs CS1626)
+- Optimisation mémoire et gestion des ressources
+- Corrections de typage (AuditManager, BackupManager)
+- **Système de tooltips** avec ToolTip .NET standard
+- **Système de feedback visuel** avec détection d'état en temps réel
+- Documentation enrichie et mise à jour
 
 ## 🚀 Démarrage Rapide
 
@@ -120,12 +226,14 @@ windows-cleaner.exe --stats
 ## 📊 Spécifications Techniques
 
 - **Framework** : .NET 10.0 Windows
-- **Version** : 1.0.8.0
+- **Version** : 2.0.0
 - **UI** : Windows Forms (WinForms) + CLI
 - **Configuration** : Release (optimisée)
 - **Taille** : ~371 KB DLL + ~199 KB EXE
-- **Modules** : 20+ fichiers C# (~6000+ lignes)
+- **Modules** : 21+ fichiers C# (~6500+ lignes)
 - **Prérequis** : Windows 10/11 (x64), .NET 10.0 Runtime
+- **Mise à jour** : Système automatique via GitHub API
+- **Options de nettoyage** : 20+ options (standard + avancées + développeur)
 
 ## 📁 Structure du Projet
 
@@ -134,10 +242,15 @@ Windows Cleaner/
 ├── src/WindowsCleaner/
 │   ├── WindowsCleaner.csproj
 │   ├── Core/                # Cleaner, SystemOptimizer, BackupManager, Logger
-│   ├── Features/            # DiskAnalyzer, DuplicateFinder, Profiles, etc.
+│   ├── Features/            # DiskAnalyzer, DuplicateFinder, Profiles, UpdateManager
 │   └── UI/                  # Program, MainForm, ColoredProgressBar, manifest, ico
 ├── docs/                    # README, guides et notes de version
+│   ├── UPDATE_GUIDE.md      # Guide de mise à jour
+│   ├── RELEASE_GUIDE.md     # Guide de publication
+│   └── ...
 ├── scripts/                 # Scripts PowerShell
+│   ├── prepare_release.ps1  # Automatisation des releases
+│   └── ...
 ├── assets/                  # Ressources (icônes/images auxiliaires)
 ├── build/                   # Scripts d'installation (ex: Inno Setup)
 └── bin/ obj/                # Générés (ignorés du dépôt)
@@ -202,10 +315,31 @@ dotnet build src/WindowsCleaner/WindowsCleaner.csproj --configuration Release
 
 Build générée dans : `bin\Release\net10.0-windows\`
 
+### Automatiser la préparation d'une release
+
+Le script `prepare_release.ps1` automatise la mise à jour des numéros de version :
+
+```powershell
+# Mise à jour simple des fichiers
+.\scripts\prepare_release.ps1 -Version 2.0.0
+
+# Avec compilation et création du ZIP portable
+.\scripts\prepare_release.ps1 -Version 2.0.0 -Build -CreateZip
+
+# Tout automatique (fichiers + build + tag Git)
+.\scripts\prepare_release.ps1 -Version 2.0.0 -Build -CreateZip -PushTag
+```
+
+Le script met à jour automatiquement :
+- `WindowsCleaner.csproj` (Version, FileVersion, InformationalVersion)
+- `MainForm.cs` (UpdateManager version)
+- `app.manifest` (assemblyIdentity version)
+
+### Créer un installateur
 
 ```powershell
 # Avec Inno Setup compilé
-iscc windows-cleaner.iss
+iscc build/windows-cleaner.iss
 ```
 
 ### Package Portable
@@ -215,11 +349,24 @@ Fichiers à distribuer depuis `bin\Release\net10.0-windows\` :
 - `*.deps.json`, `*.runtimeconfig.json` - Configuration
 - `app.ico` - Icône de l'application
 
+### Publication sur GitHub
+
+1. Utilisez le script de préparation : `.\scripts\prepare_release.ps1 -Version X.Y.Z -Build -CreateZip -PushTag`
+2. Créez une release sur GitHub : https://github.com/votre-username/Windows-Cleaner/releases/new
+3. Attachez les fichiers : setup.exe, portable.zip
+4. Publiez - Le système de mise à jour automatique détectera la nouvelle version
+
+Consultez [RELEASE_GUIDE.md](docs/RELEASE_GUIDE.md) pour plus de détails.
+
 ## 📚 Documentation
+
+### Version 2.0.0
+- **[UPDATE_GUIDE.md](docs/UPDATE_GUIDE.md)** - Guide complet de mise à jour
+- **[RELEASE_GUIDE.md](docs/RELEASE_GUIDE.md)** - Guide de publication des releases
+- **[CHANGELOG.md](CHANGELOG.md)** - Historique détaillé des versions
 
 ### Version 1.0.6
 - **[NEW_FEATURES_v1.0.6.md](NEW_FEATURES_v1.0.6.md)** - Guide complet des 12 nouvelles fonctionnalités
-- **[CHANGELOG.md](CHANGELOG.md)** - Historique détaillé des versions
 - **[USAGE_EXAMPLES.md](USAGE_EXAMPLES.md)** - 9 scénarios pratiques d'utilisation
 - **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - Résumé de l'implémentation
 - **[README_v1.0.6.md](README_v1.0.6.md)** - Documentation principale détaillée
@@ -229,48 +376,6 @@ Fichiers à distribuer depuis `bin\Release\net10.0-windows\` :
 - **[COMPLETION_REPORT.md](COMPLETION_REPORT.md)** - Rapport des améliorations v1.0.5
 - **[ADVANCED_FEATURES.md](ADVANCED_FEATURES.md)** - Guide des fonctionnalités avancées
 - **[USAGE_GUIDE.md](USAGE_GUIDE.md)** - Guide d'utilisation
-
-## 🆕 Nouveautés v1.0.8 (12 décembre 2025)
-
-### ✨ Nouvelles Fonctionnalités
-
-#### 🔗 Suppression des Raccourcis Cassés
-- **Détection automatique** des raccourcis (.lnk) dont la cible n'existe plus
-- **Scan intelligent** : Bureau, Menu Démarrer, Documents Récents, Dossier Liens
-- **Vérification via COM** (WScript.Shell) pour validation précise
-- **Suppression sécurisée** avec support du mode Dry-Run
-- **Aucun privilège admin requis**
-- Améliore la propreté du bureau et des menus
-
-#### ☑ Boutons de Sélection Rapide
-- **Bouton "✅ Tout"** : Coche toutes les options de nettoyage en un clic
-- **Bouton "❌ Rien"** : Décoche toutes les options rapidement
-- **Emplacement** : Groupe Actions, à côté des boutons Simuler/Nettoyer
-- **Couleurs intelligentes** :
-  - 🟢 VERT VIF si tout est coché
-  - 🔴 ROUGE VIF si rien n'est coché
-  - 🟠 ORANGE VIF si sélection partielle
-- **Infobulles explicites** : Description au survol de la souris
-- **Bascule automatique** vers le profil "Personnalisé (manuel)"
-- **Sélectif** : Affecte uniquement les options de nettoyage (préserve Mode verbeux et Rapport détaillé)
-
-### 🎨 Améliorations de l'Interface
-- **Infobulles contextuelles** sur tous les boutons d'action
-  - 🔍 Simuler : "Simuler le nettoyage sans supprimer (Mode test sûr)"
-  - 🧹 Nettoyer : "Exécuter le nettoyage avec suppression réelle (Vérifiez d'abord)"
-  - ✅ Tout : "Cocher toutes les options en un clic"
-  - ❌ Rien : "Décocher toutes les options en un clic"
-- **Design Material moderne** avec palette de couleurs vives
-- **Feedback visuel immédiat** sur l'état de sélection
-
-### 🔧 Améliorations Techniques
-- Migration complète vers **.NET 10.0-windows**
-- Restructuration des méthodes d'énumération (correction erreurs CS1626)
-- Optimisation mémoire et gestion des ressources
-- Corrections de typage (AuditManager, BackupManager)
-- **Système de tooltips** avec ToolTip .NET standard
-- **Système de feedback visuel** avec détection d'état en temps réel
-- Documentation enrichie et mise à jour
 
 ---
 

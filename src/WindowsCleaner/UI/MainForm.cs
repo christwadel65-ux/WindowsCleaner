@@ -38,6 +38,18 @@ namespace WindowsCleaner
         private CheckBox chkOrphanedFiles = null!;
         private CheckBox chkClearMemoryCache = null!;
         private CheckBox chkBrokenShortcuts = null!;
+        
+        // Developer cleaning options
+        private CheckBox chkVsCodeCache = null!;
+        private CheckBox chkNugetCache = null!;
+        private CheckBox chkMavenCache = null!;
+        private CheckBox chkNpmCache = null!;
+        private CheckBox chkDockerCache = null!;
+        private CheckBox chkNodeModules = null!;
+        private CheckBox chkVisualStudio = null!;
+        private CheckBox chkPythonCache = null!;
+        private CheckBox chkGitCache = null!;
+        private CheckBox chkGameCaches = null!;
 
         // Profile selection
         private ComboBox cmbProfiles = null!;
@@ -63,8 +75,8 @@ namespace WindowsCleaner
         {
             Text = "Windows Cleaner - Nettoyage Professionnel";
             Width = 1220;
-            Height = 820;
-            MinimumSize = new Size(1220, 700);
+            Height = 850;
+            MinimumSize = new Size(1220, 850);
             StartPosition = FormStartPosition.CenterScreen;
             MaximizeBox = true;
             AutoScaleMode = AutoScaleMode.Dpi;
@@ -91,6 +103,9 @@ namespace WindowsCleaner
             
             // Charger les paramètres sauvegardés
             LoadSavedOptions();
+            
+            // Vérifier les mises à jour au démarrage (asynchrone)
+            _ = CheckForUpdatesAsync(silent: true);
         }
         
         private void LoadSavedOptions()
@@ -225,6 +240,19 @@ namespace WindowsCleaner
                 chkVerbose.Checked = profile.Verbose;
                 chkOrphanedFiles.Checked = profile.CleanOrphanedFiles;
                 chkClearMemoryCache.Checked = profile.ClearMemoryCache;
+                chkBrokenShortcuts.Checked = profile.CleanBrokenShortcuts;
+                
+                // Developer options
+                chkVsCodeCache.Checked = profile.CleanVsCodeCache;
+                chkNugetCache.Checked = profile.CleanNugetCache;
+                chkMavenCache.Checked = profile.CleanMavenCache;
+                chkNpmCache.Checked = profile.CleanNpmCache;
+                chkDockerCache.Checked = profile.CleanDocker;
+                chkNodeModules.Checked = profile.CleanNodeModules;
+                chkVisualStudio.Checked = profile.CleanVisualStudio;
+                chkPythonCache.Checked = profile.CleanPythonCache;
+                chkGitCache.Checked = profile.CleanGitCache;
+                chkGameCaches.Checked = profile.CleanGameCaches;
             }
             finally
             {
@@ -260,9 +288,13 @@ namespace WindowsCleaner
         }
 
         [MemberNotNull(nameof(menu), nameof(fileMenu), nameof(exportLogsMenuItem), nameof(exitMenuItem),
-            nameof(btnDryRun), nameof(btnClean), nameof(btnCancel), nameof(chkRecycle), nameof(chkSystemTemp),
+            nameof(btnDryRun), nameof(btnClean), nameof(btnCancel), nameof(btnSelectAll), nameof(btnDeselectAll),
+            nameof(chkRecycle), nameof(chkSystemTemp),
             nameof(chkBrowsers), nameof(chkWindowsUpdate), nameof(chkThumbnails), nameof(chkPrefetch),
             nameof(chkFlushDns), nameof(chkVerbose), nameof(chkAdvanced), nameof(chkOrphanedFiles), nameof(chkClearMemoryCache), 
+            nameof(chkBrokenShortcuts), nameof(chkVsCodeCache), nameof(chkNugetCache), nameof(chkMavenCache), 
+            nameof(chkNpmCache), nameof(chkDockerCache), nameof(chkNodeModules), nameof(chkVisualStudio),
+            nameof(chkPythonCache), nameof(chkGitCache), nameof(chkGameCaches),
             nameof(cmbProfiles), nameof(lblProfile), nameof(lvLogs), nameof(progressBar), nameof(statusStrip), nameof(statusLabel))]
         private void InitializeComponents()
         {
@@ -288,8 +320,10 @@ namespace WindowsCleaner
             var optimizerMenuItem = new ToolStripMenuItem("⚡ Optimiser le système");
             
             var helpMenu = new ToolStripMenuItem("Aide");
+            var checkUpdateMenuItem = new ToolStripMenuItem("🔄 Vérifier les mises à jour");
             var aboutMenuItem = new ToolStripMenuItem("À propos");
             
+            checkUpdateMenuItem.Click += CheckUpdateMenuItem_Click;
             aboutMenuItem.Click += AboutMenuItem_Click;
             diskAnalyzerMenuItem.Click += DiskAnalyzerMenuItem_Click;
             duplicateFinderMenuItem.Click += DuplicateFinderMenuItem_Click;
@@ -335,6 +369,8 @@ namespace WindowsCleaner
             toolsMenu.DropDownItems.Add(optimizerMenuItem);
             menu.Items.Add(toolsMenu);
             
+            helpMenu.DropDownItems.Add(checkUpdateMenuItem);
+            helpMenu.DropDownItems.Add(new ToolStripSeparator());
             helpMenu.DropDownItems.Add(aboutMenuItem);
             menu.Items.Add(helpMenu);
             Controls.Add(menu);
@@ -393,7 +429,7 @@ namespace WindowsCleaner
             Controls.Add(grpOptions);
 
             // Advanced options - MEILLEURE PRÉSENTATION
-            var grpAdvanced = new GroupBox() { Text = "Options Avancées", Left = 12, Top = 200, Width = 1168, Height = 75, Padding = new Padding(0, 8, 0, 0) };
+            var grpAdvanced = new GroupBox() { Text = "Options Avancées", Left = 12, Top = 155, Width = 1168, Height = 75, Padding = new Padding(0, 8, 0, 0) };
             chkVerbose = new CheckBox() { Text = "📝 Mode verbeux", Left = 15, Top = 30, Width = 220, AutoSize = false, Height = 28, Font = new Font("Segoe UI", 9.5f) };
             chkAdvanced = new CheckBox() { Text = "📊 Rapport détaillé", Left = 240, Top = 30, Width = 220, AutoSize = false, Height = 28, Font = new Font("Segoe UI", 9.5f) };
             chkOrphanedFiles = new CheckBox() { Text = "🧩 Fichiers orphelins", Left = 465, Top = 30, Width = 220, AutoSize = false, Height = 28, Font = new Font("Segoe UI", 9.5f) };
@@ -405,10 +441,35 @@ namespace WindowsCleaner
             grpAdvanced.Controls.Add(chkClearMemoryCache);
             grpAdvanced.Controls.Add(chkBrokenShortcuts);
             Controls.Add(grpAdvanced);
+            
+            // Developer options - NOUVEAU GROUPE
+            var grpDeveloper = new GroupBox() { Text = "💻 Nettoyage Développeur", Left = 12, Top = 240, Width = 1168, Height = 100, Padding = new Padding(0, 8, 0, 0) };
+            chkVsCodeCache = new CheckBox() { Text = "📦 VS Code", Left = 15, Top = 25, Width = 145, AutoSize = false, Height = 28, Font = new Font("Segoe UI", 9f) };
+            chkNugetCache = new CheckBox() { Text = "📦 NuGet", Left = 165, Top = 25, Width = 130, AutoSize = false, Height = 28, Font = new Font("Segoe UI", 9f) };
+            chkMavenCache = new CheckBox() { Text = "📦 Maven", Left = 300, Top = 25, Width = 130, AutoSize = false, Height = 28, Font = new Font("Segoe UI", 9f) };
+            chkNpmCache = new CheckBox() { Text = "📦 npm", Left = 435, Top = 25, Width = 120, AutoSize = false, Height = 28, Font = new Font("Segoe UI", 9f) };
+            chkDockerCache = new CheckBox() { Text = "🐳 Docker", Left = 560, Top = 25, Width = 130, AutoSize = false, Height = 28, Font = new Font("Segoe UI", 9f) };
+            chkNodeModules = new CheckBox() { Text = "📁 node_modules", Left = 695, Top = 25, Width = 160, AutoSize = false, Height = 28, Font = new Font("Segoe UI", 9f) };
+            chkVisualStudio = new CheckBox() { Text = "🔨 Visual Studio", Left = 860, Top = 25, Width = 145, AutoSize = false, Height = 28, Font = new Font("Segoe UI", 9f) };
+            chkPythonCache = new CheckBox() { Text = "🐍 Python", Left = 1010, Top = 25, Width = 145, AutoSize = false, Height = 28, Font = new Font("Segoe UI", 9f) };
+            chkGitCache = new CheckBox() { Text = "📂 Git", Left = 15, Top = 58, Width = 130, AutoSize = false, Height = 28, Font = new Font("Segoe UI", 9f) };
+            chkGameCaches = new CheckBox() { Text = "🎮 Jeux (Steam/Epic)", Left = 150, Top = 58, Width = 180, AutoSize = false, Height = 28, Font = new Font("Segoe UI", 9f) };
+            
+            grpDeveloper.Controls.Add(chkVsCodeCache);
+            grpDeveloper.Controls.Add(chkNugetCache);
+            grpDeveloper.Controls.Add(chkMavenCache);
+            grpDeveloper.Controls.Add(chkNpmCache);
+            grpDeveloper.Controls.Add(chkDockerCache);
+            grpDeveloper.Controls.Add(chkNodeModules);
+            grpDeveloper.Controls.Add(chkVisualStudio);
+            grpDeveloper.Controls.Add(chkPythonCache);
+            grpDeveloper.Controls.Add(chkGitCache);
+            grpDeveloper.Controls.Add(chkGameCaches);
+            Controls.Add(grpDeveloper);
 
-            // Logs GroupBox - AUGMENTÉ
-            var grpLogs = new GroupBox() { Text = "📋 Journal des Opérations", Left = 12, Top = 290, Width = 1168, Height = 440, Padding = new Padding(0, 8, 0, 0) };
-            lvLogs = new ListView() { Left = 8, Top = 30, Width = 1152, Height = 402, View = View.Details, FullRowSelect = true, Font = new Font("Segoe UI", 9), BorderStyle = BorderStyle.None };
+            // Logs GroupBox - AUGMENTÉ - Position ajustée
+            var grpLogs = new GroupBox() { Text = "📋 Journal des Opérations", Left = 12, Top = 350, Width = 1168, Height = 380, Padding = new Padding(0, 8, 0, 0) };
+            lvLogs = new ListView() { Left = 8, Top = 30, Width = 1152, Height = 342, View = View.Details, FullRowSelect = true, Font = new Font("Segoe UI", 9), BorderStyle = BorderStyle.None };
             lvLogs.Columns.Add("Heure", 160);
             lvLogs.Columns.Add("Niveau", 100);
             lvLogs.Columns.Add("Message", 892);
@@ -823,7 +884,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.";
 
-            var msg = $"Windows Cleaner\n\n{author}\n\n{licenseTitle}\n\n{licenseText}\n\nVersion: 1.0.8";
+            var msg = $"Windows Cleaner\n\n{author}\n\n{licenseTitle}\n\n{licenseText}\n\nVersion: 2.0.0";
             MessageBox.Show(msg, "À propos", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
@@ -863,6 +924,18 @@ SOFTWARE.";
             chkClearMemoryCache.Checked = select;
             chkBrokenShortcuts.Checked = select;
             
+            // Options développeur
+            chkVsCodeCache.Checked = select;
+            chkNugetCache.Checked = select;
+            chkMavenCache.Checked = select;
+            chkNpmCache.Checked = select;
+            chkDockerCache.Checked = select;
+            chkNodeModules.Checked = select;
+            chkVisualStudio.Checked = select;
+            chkPythonCache.Checked = select;
+            chkGitCache.Checked = select;
+            chkGameCaches.Checked = select;
+            
             // Note: on ne touche pas chkVerbose et chkAdvanced car ce sont des options de comportement, pas de nettoyage
             
             _suppressProfileEvent = false;
@@ -882,13 +955,21 @@ SOFTWARE.";
             bool allChecked = chkRecycle.Checked && chkSystemTemp.Checked && chkBrowsers.Checked &&
                              chkWindowsUpdate.Checked && chkThumbnails.Checked && chkPrefetch.Checked &&
                              chkFlushDns.Checked && chkOrphanedFiles.Checked && chkClearMemoryCache.Checked &&
-                             chkBrokenShortcuts.Checked;
+                             chkBrokenShortcuts.Checked &&
+                             chkVsCodeCache.Checked && chkNugetCache.Checked && chkMavenCache.Checked &&
+                             chkNpmCache.Checked && chkDockerCache.Checked && chkNodeModules.Checked &&
+                             chkVisualStudio.Checked && chkPythonCache.Checked && chkGitCache.Checked &&
+                             chkGameCaches.Checked;
             
             // Vérifier si aucune option n'est cochée
             bool noneChecked = !chkRecycle.Checked && !chkSystemTemp.Checked && !chkBrowsers.Checked &&
                               !chkWindowsUpdate.Checked && !chkThumbnails.Checked && !chkPrefetch.Checked &&
                               !chkFlushDns.Checked && !chkOrphanedFiles.Checked && !chkClearMemoryCache.Checked &&
-                              !chkBrokenShortcuts.Checked;
+                              !chkBrokenShortcuts.Checked &&
+                              !chkVsCodeCache.Checked && !chkNugetCache.Checked && !chkMavenCache.Checked &&
+                              !chkNpmCache.Checked && !chkDockerCache.Checked && !chkNodeModules.Checked &&
+                              !chkVisualStudio.Checked && !chkPythonCache.Checked && !chkGitCache.Checked &&
+                              !chkGameCaches.Checked;
             
             // Mettre à jour l'apparence des boutons avec des couleurs vives
             if (allChecked)
@@ -969,6 +1050,17 @@ SOFTWARE.";
                     CleanApplicationLogs = false,
                     ClearMemoryCache = chkClearMemoryCache.Checked,
                     CleanBrokenShortcuts = chkBrokenShortcuts.Checked,
+                    // Developer options
+                    CleanVsCodeCache = chkVsCodeCache.Checked,
+                    CleanNugetCache = chkNugetCache.Checked,
+                    CleanMavenCache = chkMavenCache.Checked,
+                    CleanNpmCache = chkNpmCache.Checked,
+                    CleanDocker = chkDockerCache.Checked,
+                    CleanNodeModules = chkNodeModules.Checked,
+                    CleanVisualStudio = chkVisualStudio.Checked,
+                    CleanPythonCache = chkPythonCache.Checked,
+                    CleanGitCache = chkGitCache.Checked,
+                    CleanGameCaches = chkGameCaches.Checked,
                 };
 
             // advanced mode: generate and show report before executing (unless dry-run)
@@ -1612,6 +1704,7 @@ SOFTWARE.";
             btnClean.Enabled = false;
             btnDryRun.Enabled = false;
 
+            var startTime = DateTime.Now;
             try
             {
                 var results = new System.Text.StringBuilder();
@@ -1624,19 +1717,44 @@ SOFTWARE.";
                 var trimResult = await Task.Run(() => SystemOptimizer.OptimizeSsd());
                 results.AppendLine($"TRIM SSD : {(trimResult ? "✓ Succès" : "✗ Échec")}");
                 
+                // Vérification SMART
+                progressBar.Value = 30;
+                statusLabel.Text = "Vérification santé disque (SMART)...";
+                var smartReport = await Task.Run(() => SystemOptimizer.CheckDiskHealth());
+                var healthOk = !string.IsNullOrEmpty(smartReport);
+                results.AppendLine($"Vérification SMART : {(healthOk ? "✓ Succès" : "✗ Échec")}");
+                
                 // Compaction registre
-                progressBar.Value = 40;
+                progressBar.Value = 50;
                 statusLabel.Text = "Compaction du registre...";
                 var regResult = await Task.Run(() => SystemOptimizer.CompactRegistry());
                 results.AppendLine($"Compaction Registre : {(regResult ? "✓ Succès" : "✗ Échec")}");
                 
                 // Nettoyage mémoire
-                progressBar.Value = 70;
+                progressBar.Value = 75;
                 statusLabel.Text = "Nettoyage mémoire cache...";
                 var memResult = await Task.Run(() => SystemOptimizer.ClearStandbyMemory());
                 results.AppendLine($"Nettoyage Mémoire : {(memResult ? "✓ Succès" : "✗ Échec")}");
                 
                 progressBar.Value = 100;
+                
+                // Sauvegarder les statistiques
+                var duration = DateTime.Now - startTime;
+                var stats = new CleaningStatistics
+                {
+                    Timestamp = DateTime.Now,
+                    ProfileUsed = "Optimisation Système",
+                    FilesDeleted = 0,
+                    BytesFreed = 0,
+                    Duration = duration,
+                    WasDryRun = false,
+                    SsdOptimized = trimResult,
+                    DiskHealthChecked = healthOk,
+                    DiskHealthReport = smartReport ?? ""
+                };
+                
+                StatisticsManager.RecordCleaningSession(stats);
+                Logger.Log(LogLevel.Info, $"Statistiques d'optimisation sauvegardées (TRIM: {trimResult}, SMART: {healthOk})");
                 
                 MessageBox.Show($"Optimisations terminées :\n\n{results}", "Résultats", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 Logger.Log(LogLevel.Info, "Optimisations système terminées");
@@ -1652,6 +1770,51 @@ SOFTWARE.";
                 statusLabel.Text = "Prêt";
                 btnClean.Enabled = true;
                 btnDryRun.Enabled = true;
+            }
+        }
+
+        private async void CheckUpdateMenuItem_Click(object? sender, EventArgs e)
+        {
+            await CheckForUpdatesAsync(silent: false);
+        }
+
+        private async Task CheckForUpdatesAsync(bool silent)
+        {
+            try
+            {
+                // Configurer avec votre dépôt GitHub
+                // Format: "propriétaire", "nom-du-repo"
+                var updateManager = new UpdateManager("christwadel65-ux", "Windows-Cleaner", "1.0.8");
+                
+                if (silent)
+                {
+                    // Vérification silencieuse au démarrage
+                    var updateInfo = await updateManager.CheckForUpdateAsync();
+                    if (updateInfo != null)
+                    {
+                        // Afficher une notification discrète dans la barre de statut
+                        statusLabel.Text = $"✨ Nouvelle version disponible : {updateInfo.Version} (Cliquez sur Aide > Vérifier les mises à jour)";
+                        statusLabel.ForeColor = Color.Orange;
+                    }
+                }
+                else
+                {
+                    // Vérification manuelle avec dialogue
+                    await updateManager.CheckAndNotifyUpdateAsync(this);
+                }
+            }
+            catch (Exception ex)
+            {
+                if (!silent)
+                {
+                    MessageBox.Show(
+                        $"Impossible de vérifier les mises à jour :\n{ex.Message}",
+                        "Erreur",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning
+                    );
+                }
+                Logger.Log(LogLevel.Warning, $"Erreur vérification mise à jour : {ex.Message}");
             }
         }
 
