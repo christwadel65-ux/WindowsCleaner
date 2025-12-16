@@ -1,4 +1,4 @@
-# Windows Cleaner v2.0.0
+# **Windows Cleaner v2.0.0**
 
 [![.NET](https://img.shields.io/badge/.NET-10.0-blue.svg)](https://dotnet.microsoft.com/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](../LICENSE)
