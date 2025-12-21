@@ -9,6 +9,25 @@ et ce projet adhère au [Versionnage Sémantique](https://semver.org/lang/fr/).
 
 Toutes les modifications notables de ce projet seront documentées dans ce fichier.
 
+## 🆕 Nouveautés v2.0.2 (18 décembre 2025)
+
+### 🔒 Amélioration Vie Privée : Historique Navigateurs et Onglets Récents
+- **Case à cocher dédiée "🕘 Historique navigateurs"** dans le bloc Nettoyage Standard (cochée par défaut)
+- **Nettoyage complet de l'historique** : Chrome/Edge/Firefox (fichiers History, places.sqlite)
+- **Suppression des onglets récents/sessions** :
+  - Chrome/Edge : dossiers `Sessions` + fichiers `Last Session`, `Last Tabs`, `Current Session`, `Current Tabs`
+  - Firefox : dossier `sessionstore-backups` + fichier `sessionstore.jsonlz4`
+- **Fermeture automatique des navigateurs** avant nettoyage pour éviter les verrous
+- **Option indépendante** : choix de nettoyer cache navigateurs sans historique (ou vice-versa)
+- **Intégration totale** : profils prédéfinis, boutons Tout/Rien, sauvegarde des paramètres
+- **Statistiques détaillées** : comptabilise fichiers supprimés et octets libérés
+
+### 🛠️ Gestion de Version Centralisée
+- **Classe AppVersion** : lecture automatique de la version depuis l'assembly
+- **Script update_version.ps1** : mise à jour automatique de tous les fichiers (csproj, iss, README)
+- **Documentation complète** : [VERSION_MANAGEMENT.md](docs/VERSION_MANAGEMENT.md)
+- Plus besoin de modifier manuellement le code source pour changer la version
+
 ## [2.0.0] - 2025-12-15
 
 ### 🚀 Version Majeure - Refonte Complète
