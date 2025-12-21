@@ -5,13 +5,12 @@ obj/
 *.userprefs
 .vs/
 scripts/
+plans/
 
 .fake
 Output/
 publish-output/
 bin/
-scripts/
-plans/
 obj/
 *.iss
 # Distribution artifacts
