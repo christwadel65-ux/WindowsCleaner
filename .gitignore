@@ -4,11 +4,14 @@ obj/
 *.suo
 *.userprefs
 .vs/
+scripts/
 
 .fake
 Output/
 publish-output/
 bin/
+scripts/
+plans/
 obj/
 *.iss
 # Distribution artifacts

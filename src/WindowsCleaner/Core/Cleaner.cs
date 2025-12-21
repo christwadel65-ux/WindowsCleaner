@@ -22,6 +22,8 @@ namespace WindowsCleaner
         public bool IncludeSystemTemp { get; set; }
         /// <summary>Nettoie les caches des navigateurs web</summary>
         public bool CleanBrowsers { get; set; }
+        /// <summary>Nettoie l'historique des navigateurs (bases SQLite, sessions)</summary>
+        public bool CleanBrowserHistory { get; set; } = true;
         /// <summary>Nettoie le cache Windows Update (nécessite admin)</summary>
         public bool CleanWindowsUpdate { get; set; }
         /// <summary>Nettoie les fichiers de vignettes</summary>
@@ -170,6 +172,13 @@ namespace WindowsCleaner
         private const uint SHERB_NOPROGRESSUI = 0x00000002;
         private const uint SHERB_NOSOUND = 0x00000004;
 
+        // P/Invoke pour MoveFileEx (suppression au redémarrage)
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool MoveFileEx(string lpExistingFileName, string? lpNewFileName, uint dwFlags);
+        private const uint MOVEFILE_DELAY_UNTIL_REBOOT = 0x00000004;
+        private const uint MOVEFILE_REPLACE_EXISTING = 0x00000001;
+
         /// <summary>
         /// Exécute le nettoyage selon les options spécifiées
         /// </summary>
@@ -196,37 +205,41 @@ namespace WindowsCleaner
 
             var tasks = new System.Collections.Generic.List<Task>();
 
-            // User temp
-            tasks.Add(Task.Run(() =>
+            // User temp + LocalAppData Temp (rattachés à l'option "Temp Système" pour plus de clarté UX)
+            if (options.IncludeSystemTemp)
             {
-                try
+                // User temp
+                tasks.Add(Task.Run(() =>
                 {
-                    string userTemp = BrowserPaths.UserTemp;
-                    threadSafeLog($"Nettoyage du dossier temporaire utilisateur: {userTemp}");
-                    var r = DeleteDirectoryContents(userTemp, options.DryRun, threadSafeLog, cancellationToken);
-                    AddResult(r.files, r.bytes);
-                }
-                catch (Exception ex)
-                {
-                    Logger.Log(LogLevel.Error, $"Erreur nettoyage user temp: {ex.Message}");
-                }
-            }, cancellationToken));
+                    try
+                    {
+                        string userTemp = BrowserPaths.UserTemp;
+                        threadSafeLog($"Nettoyage du dossier temporaire utilisateur: {userTemp}");
+                        var r = DeleteDirectoryContents(userTemp, options.DryRun, threadSafeLog, cancellationToken);
+                        AddResult(r.files, r.bytes);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Log(LogLevel.Error, $"Erreur nettoyage user temp: {ex.Message}");
+                    }
+                }, cancellationToken));
 
-            // LocalAppData\Temp
-            tasks.Add(Task.Run(() =>
-            {
-                try
+                // LocalAppData\Temp
+                tasks.Add(Task.Run(() =>
                 {
-                    var localTemp = BrowserPaths.LocalAppDataTemp;
-                    threadSafeLog($"Nettoyage du dossier LocalAppData Temp: {localTemp}");
-                    var r = DeleteDirectoryContents(localTemp, options.DryRun, threadSafeLog, cancellationToken);
-                    AddResult(r.files, r.bytes);
-                }
-                catch (Exception ex)
-                {
-                    Logger.Log(LogLevel.Error, $"Erreur nettoyage LocalAppData Temp: {ex.Message}");
-                }
-            }, cancellationToken));
+                    try
+                    {
+                        var localTemp = BrowserPaths.LocalAppDataTemp;
+                        threadSafeLog($"Nettoyage du dossier LocalAppData Temp: {localTemp}");
+                        var r = DeleteDirectoryContents(localTemp, options.DryRun, threadSafeLog, cancellationToken);
+                        AddResult(r.files, r.bytes);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Log(LogLevel.Error, $"Erreur nettoyage LocalAppData Temp: {ex.Message}");
+                    }
+                }, cancellationToken));
+            }
 
             // System temp (optional)
             if (options.IncludeSystemTemp)
@@ -243,6 +256,132 @@ namespace WindowsCleaner
                     catch (Exception ex)
                     {
                         Logger.Log(LogLevel.Error, $"Erreur nettoyage System Temp: {ex.Message}");
+                    }
+                }, cancellationToken));
+            }
+
+            // Historique navigateurs et sessions récentes (option indépendante)
+            if (options.CleanBrowsers && options.CleanBrowserHistory)
+            {
+                // Fermer les navigateurs pour éviter les verrous
+                if (options.CloseBrowsersIfNeeded && !options.DryRun)
+                {
+                    threadSafeLog("Fermeture des navigateurs avant nettoyage de l'historique...");
+                    CloseBrowserProcesses(threadSafeLog);
+                    Thread.Sleep(1200);
+                }
+
+                // Chrome/Edge: fichiers Last/Current Session & Tabs + dossier Sessions + base History
+                void CleanChromiumHistory(string basePath, string browserName)
+                {
+                    try
+                    {
+                        if (!Directory.Exists(basePath)) return;
+                        var targets = new System.Collections.Generic.List<string>();
+                        var sessionsDir = Path.Combine(basePath, "Sessions");
+                        if (Directory.Exists(sessionsDir)) targets.Add(sessionsDir);
+                        string[] files = new[] {"Last Session","Last Tabs","Current Session","Current Tabs","History"};
+                        foreach (var f in files)
+                        {
+                            var p = Path.Combine(basePath, f);
+                            targets.Add(p);
+                        }
+
+                        foreach (var t in targets)
+                        {
+                            try
+                            {
+                                if (File.Exists(t))
+                                {
+                                    var fi = new FileInfo(t);
+                                    if (!options.DryRun)
+                                    {
+                                        try { File.Delete(t); }
+                                        catch (FileNotFoundException) { /* déjà supprimé */ }
+                                    }
+                                    AddResult(1, fi.Length);
+                                    threadSafeLog($"Supprimé historique {browserName}: {t}");
+                                }
+                                else if (Directory.Exists(t))
+                                {
+                                    var r = DeleteDirectoryContents(t, options.DryRun, threadSafeLog, cancellationToken);
+                                    AddResult(r.files, r.bytes);
+                                    threadSafeLog($"Nettoyé sessions {browserName}: {t}");
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Log(LogLevel.Debug, $"Impossible de supprimer {t}: {ex.Message}");
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Log(LogLevel.Error, $"Erreur historique {browserName}: {ex.Message}");
+                    }
+                }
+
+                // Chrome
+                tasks.Add(Task.Run(() =>
+                {
+                    var chromeDefault = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                        "Google","Chrome","User Data","Default");
+                    CleanChromiumHistory(chromeDefault, "Chrome");
+                }, cancellationToken));
+
+                // Edge
+                tasks.Add(Task.Run(() =>
+                {
+                    var edgeDefault = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                        "Microsoft","Edge","User Data","Default");
+                    CleanChromiumHistory(edgeDefault, "Edge");
+                }, cancellationToken));
+
+                // Firefox
+                tasks.Add(Task.Run(() =>
+                {
+                    try
+                    {
+                        if (!BrowserPaths.IsFirefoxInstalled) return;
+                        foreach (var profile in Directory.GetDirectories(BrowserPaths.FirefoxProfiles))
+                        {
+                            var sessionBackup = Path.Combine(profile, "sessionstore-backups");
+                            var sessionFile = Path.Combine(profile, "sessionstore.jsonlz4");
+                            var historyDb = Path.Combine(profile, "places.sqlite");
+
+                            if (Directory.Exists(sessionBackup))
+                            {
+                                var r = DeleteDirectoryContents(sessionBackup, options.DryRun, threadSafeLog, cancellationToken);
+                                AddResult(r.files, r.bytes);
+                                threadSafeLog($"Nettoyé sessions Firefox: {sessionBackup}");
+                            }
+                            if (File.Exists(sessionFile))
+                            {
+                                var fi = new FileInfo(sessionFile);
+                                if (!options.DryRun)
+                                {
+                                    try { File.Delete(sessionFile); }
+                                    catch (FileNotFoundException) { }
+                                }
+                                AddResult(1, fi.Length);
+                                threadSafeLog($"Supprimé session Firefox: {sessionFile}");
+                            }
+                            if (File.Exists(historyDb))
+                            {
+                                var fi = new FileInfo(historyDb);
+                                if (!options.DryRun)
+                                {
+                                    try { File.Delete(historyDb); }
+                                    catch (FileNotFoundException) { }
+                                }
+                                AddResult(1, fi.Length);
+                                threadSafeLog($"Supprimé historique Firefox: {historyDb}");
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Log(LogLevel.Error, $"Erreur historique Firefox: {ex.Message}");
                     }
                 }, cancellationToken));
             }
@@ -918,33 +1057,36 @@ namespace WindowsCleaner
 
             var tasks = new System.Collections.Generic.List<Task>();
 
-            tasks.Add(Task.Run(() =>
+            if (options.IncludeSystemTemp)
             {
-                try
+                tasks.Add(Task.Run(() =>
                 {
-                    string userTemp = BrowserPaths.UserTemp;
-                    P($"Scan du dossier temporaire utilisateur: {userTemp}");
-                    ScanDirectoryParallel(userTemp, items, P, cancellationToken);
-                }
-                catch (Exception ex) 
-                { 
-                    Logger.Log(LogLevel.Error, $"Erreur scan user temp: {ex.Message}"); 
-                }
-            }, cancellationToken));
+                    try
+                    {
+                        string userTemp = BrowserPaths.UserTemp;
+                        P($"Scan du dossier temporaire utilisateur: {userTemp}");
+                        ScanDirectoryParallel(userTemp, items, P, cancellationToken);
+                    }
+                    catch (Exception ex) 
+                    { 
+                        Logger.Log(LogLevel.Error, $"Erreur scan user temp: {ex.Message}"); 
+                    }
+                }, cancellationToken));
 
-            tasks.Add(Task.Run(() =>
-            {
-                try
+                tasks.Add(Task.Run(() =>
                 {
-                    var localTemp = BrowserPaths.LocalAppDataTemp;
-                    P($"Scan LocalAppData Temp: {localTemp}");
-                    ScanDirectoryParallel(localTemp, items, P, cancellationToken);
-                }
-                catch (Exception ex) 
-                { 
-                    Logger.Log(LogLevel.Error, $"Erreur scan LocalAppData Temp: {ex.Message}"); 
-                }
-            }, cancellationToken));
+                    try
+                    {
+                        var localTemp = BrowserPaths.LocalAppDataTemp;
+                        P($"Scan LocalAppData Temp: {localTemp}");
+                        ScanDirectoryParallel(localTemp, items, P, cancellationToken);
+                    }
+                    catch (Exception ex) 
+                    { 
+                        Logger.Log(LogLevel.Error, $"Erreur scan LocalAppData Temp: {ex.Message}"); 
+                    }
+                }, cancellationToken));
+            }
 
             if (options.IncludeSystemTemp)
             {
@@ -959,6 +1101,55 @@ namespace WindowsCleaner
                     catch (Exception ex) 
                     { 
                         Logger.Log(LogLevel.Error, $"Erreur scan System Temp: {ex.Message}"); 
+                    }
+                }, cancellationToken));
+            }
+
+            if (options.CleanBrowsers && options.CleanBrowserHistory)
+            {
+                tasks.Add(Task.Run(() =>
+                {
+                    try
+                    {
+                        var chromeDefault = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                            "Google","Chrome","User Data","Default");
+                        var edgeDefault = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                            "Microsoft","Edge","User Data","Default");
+                        void ScanChromium(string basePath, string name)
+                        {
+                            if (!Directory.Exists(basePath)) return;
+                            string[] files = new[]{"Last Session","Last Tabs","Current Session","Current Tabs","History"};
+                            foreach (var f in files)
+                            {
+                                var p = Path.Combine(basePath, f);
+                                if (File.Exists(p)) items.Add(new ReportItem{ Path = p, IsDirectory = false, Size = new FileInfo(p).Length });
+                            }
+                            var sessions = Path.Combine(basePath, "Sessions");
+                            if (Directory.Exists(sessions))
+                            {
+                                P($"Scan {name} sessions: {sessions}");
+                                ScanDirectoryParallel(sessions, items, P, cancellationToken);
+                            }
+                        }
+                        ScanChromium(chromeDefault, "Chrome");
+                        ScanChromium(edgeDefault, "Edge");
+
+                        if (BrowserPaths.IsFirefoxInstalled)
+                        {
+                            foreach (var profile in Directory.GetDirectories(BrowserPaths.FirefoxProfiles))
+                            {
+                                var sessionBackup = Path.Combine(profile, "sessionstore-backups");
+                                var sessionFile = Path.Combine(profile, "sessionstore.jsonlz4");
+                                var historyDb = Path.Combine(profile, "places.sqlite");
+                                if (Directory.Exists(sessionBackup)) ScanDirectoryParallel(sessionBackup, items, P, cancellationToken);
+                                if (File.Exists(sessionFile)) items.Add(new ReportItem{ Path = sessionFile, IsDirectory = false, Size = new FileInfo(sessionFile).Length });
+                                if (File.Exists(historyDb)) items.Add(new ReportItem{ Path = historyDb, IsDirectory = false, Size = new FileInfo(historyDb).Length });
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Log(LogLevel.Error, $"Erreur scan historique navigateurs: {ex.Message}");
                     }
                 }, cancellationToken));
             }
@@ -1280,7 +1471,29 @@ namespace WindowsCleaner
         }
 
         /// <summary>
-        /// Tente de supprimer un fichier avec retries en cas d'accès verrouillé
+        /// Vérifie si un fichier est actuellement verrouillé par un processus
+        /// </summary>
+        private static bool IsFileLocked(string filePath)
+        {
+            try
+            {
+                using (var file = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.None))
+                {
+                    return false;
+                }
+            }
+            catch (IOException)
+            {
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Tente de supprimer un fichier avec retries intelligents et support MoveFileEx
         /// </summary>
         private static (bool deleted, long bytesFreed) TryDeleteFileWithRetries(string filePath, bool dryRun, Action<string> log, int maxAttempts = 8)
         {
@@ -1304,35 +1517,59 @@ namespace WindowsCleaner
             }
 
             int attempt = 0;
-            var delay = 100;
+            var delay = 50; // Démarrer plus agressif
+            var isLocked = false;
+
             while (attempt < maxAttempts)
             {
                 try
                 {
-                    // Tenter de retirer l'attribut readonly si présent
+                    // Retirer l'attribut readonly
                     var attributes = File.GetAttributes(filePath);
                     if ((attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
                     {
                         File.SetAttributes(filePath, attributes & ~FileAttributes.ReadOnly);
                     }
                     
+                    // Tenter suppression directe
                     File.Delete(filePath);
                     return (true, size);
                 }
-                catch (IOException)
+                catch (IOException ioEx)
                 {
+                    isLocked = IsFileLocked(filePath);
                     attempt++;
+                    
                     if (attempt < maxAttempts)
                     {
                         Thread.Sleep(delay);
-                        delay = Math.Min(delay * 2, 2000); // Cap à 2s
+                        delay = Math.Min(delay * 2, 1000); // Exponential backoff: 50ms, 100ms, 200ms... max 1s
+                        continue;
                     }
-                    continue;
+
+                    // Dernière tentative échouée - essayer MoveFileEx pour suppression au redémarrage
+                    if (isLocked)
+                    {
+                        try
+                        {
+                            if (MoveFileEx(filePath, null, MOVEFILE_DELAY_UNTIL_REBOOT))
+                            {
+                                Logger.Log(LogLevel.Debug, $"Fichier verrouillé marqué pour suppression au redémarrage: {Path.GetFileName(filePath)}");
+                                log($"Fichier verrouillé (suppression au redémarrage): {Path.GetFileName(filePath)}");
+                                return (true, size); // Compte comme supprimé car sera supprimé au boot
+                            }
+                        }
+                        catch (Exception moveEx)
+                        {
+                            Logger.Log(LogLevel.Debug, $"Impossible de marquer {Path.GetFileName(filePath)} pour suppression au boot: {moveEx.Message}");
+                        }
+                    }
+                    break;
                 }
                 catch (UnauthorizedAccessException)
                 {
-                    // Fichier système ou protégé - ignorer silencieusement
-                    Logger.Log(LogLevel.Debug, $"Accès refusé (protégé): {Path.GetFileName(filePath)}");
+                    // Fichier système ou protégé - ignorer
+                    Logger.Log(LogLevel.Debug, $"Accès refusé (fichier protégé): {Path.GetFileName(filePath)}");
                     return (false, 0);
                 }
                 catch (Exception ex)
@@ -1342,8 +1579,8 @@ namespace WindowsCleaner
                 }
             }
 
-            // Fichier verrouillé après toutes les tentatives - ignorer silencieusement (normal pour temp files en cours d'utilisation)
-            Logger.Log(LogLevel.Debug, $"Fichier verrouillé ignoré: {Path.GetFileName(filePath)}");
+            // Fichier toujours verrouillé après retry et MoveFileEx
+            Logger.Log(LogLevel.Debug, $"Fichier verrouillé (ignoré, normal): {Path.GetFileName(filePath)}");
             return (false, 0);
         }
 

@@ -28,6 +28,7 @@ namespace WindowsCleaner
         private CheckBox chkSystemTemp = null!;
         private CheckBox chkBrowsers = null!;
         private CheckBox chkWindowsUpdate = null!;
+        private CheckBox chkBrowserHistory = null!;
         private CheckBox chkThumbnails = null!;
         private CheckBox chkPrefetch = null!;
         private CheckBox chkFlushDns = null!;
@@ -143,6 +144,7 @@ namespace WindowsCleaner
                     CleanRecycleBin = chkRecycle.Checked,
                     CleanSystemTemp = chkSystemTemp.Checked,
                     CleanBrowsers = chkBrowsers.Checked,
+                    CleanBrowserHistory = chkBrowserHistory.Checked,
                     CleanWindowsUpdate = chkWindowsUpdate.Checked,
                     CleanThumbnails = chkThumbnails.Checked,
                     CleanPrefetch = chkPrefetch.Checked,
@@ -164,6 +166,7 @@ namespace WindowsCleaner
             if (settings.CleanRecycleBin.HasValue) chkRecycle.Checked = settings.CleanRecycleBin.Value;
             if (settings.CleanSystemTemp.HasValue) chkSystemTemp.Checked = settings.CleanSystemTemp.Value;
             if (settings.CleanBrowsers.HasValue) chkBrowsers.Checked = settings.CleanBrowsers.Value;
+            if (settings.CleanBrowserHistory.HasValue) chkBrowserHistory.Checked = settings.CleanBrowserHistory.Value;
             if (settings.CleanWindowsUpdate.HasValue) chkWindowsUpdate.Checked = settings.CleanWindowsUpdate.Value;
             if (settings.CleanThumbnails.HasValue) chkThumbnails.Checked = settings.CleanThumbnails.Value;
             if (settings.CleanPrefetch.HasValue) chkPrefetch.Checked = settings.CleanPrefetch.Value;
@@ -233,6 +236,7 @@ namespace WindowsCleaner
                 chkRecycle.Checked = profile.EmptyRecycleBin;
                 chkSystemTemp.Checked = profile.IncludeSystemTemp;
                 chkBrowsers.Checked = profile.CleanBrowsers;
+                chkBrowserHistory.Checked = profile.CleanBrowserHistory;
                 chkWindowsUpdate.Checked = profile.CleanWindowsUpdate;
                 chkThumbnails.Checked = profile.CleanThumbnails;
                 chkPrefetch.Checked = profile.CleanPrefetch;
@@ -291,7 +295,7 @@ namespace WindowsCleaner
             nameof(btnDryRun), nameof(btnClean), nameof(btnCancel), nameof(btnSelectAll), nameof(btnDeselectAll),
             nameof(chkRecycle), nameof(chkSystemTemp),
             nameof(chkBrowsers), nameof(chkWindowsUpdate), nameof(chkThumbnails), nameof(chkPrefetch),
-            nameof(chkFlushDns), nameof(chkVerbose), nameof(chkAdvanced), nameof(chkOrphanedFiles), nameof(chkClearMemoryCache), 
+            nameof(chkFlushDns), nameof(chkBrowserHistory), nameof(chkVerbose), nameof(chkAdvanced), nameof(chkOrphanedFiles), nameof(chkClearMemoryCache), 
             nameof(chkBrokenShortcuts), nameof(chkVsCodeCache), nameof(chkNugetCache), nameof(chkMavenCache), 
             nameof(chkNpmCache), nameof(chkDockerCache), nameof(chkNodeModules), nameof(chkVisualStudio),
             nameof(chkPythonCache), nameof(chkGitCache), nameof(chkGameCaches),
@@ -419,6 +423,7 @@ namespace WindowsCleaner
             chkThumbnails = new CheckBox() { Text = "🖼️ Vignettes", Left = 15, Top = 60, Width = 180, AutoSize = false, Height = 28, Font = new Font("Segoe UI", 9.5f) };
             chkPrefetch = new CheckBox() { Text = "⚡ Prefetch", Left = 205, Top = 60, Width = 180, AutoSize = false, Height = 28, Font = new Font("Segoe UI", 9.5f) };
             chkFlushDns = new CheckBox() { Text = "🔗 Flush DNS", Left = 395, Top = 60, Width = 180, AutoSize = false, Height = 28, Font = new Font("Segoe UI", 9.5f) };
+            chkBrowserHistory = new CheckBox() { Text = "🕘 Historique navigateurs", Left = 585, Top = 60, Width = 180, AutoSize = false, Height = 28, Font = new Font("Segoe UI", 9.5f), Checked = true };
             grpOptions.Controls.Add(chkRecycle);
             grpOptions.Controls.Add(chkSystemTemp);
             grpOptions.Controls.Add(chkBrowsers);
@@ -426,6 +431,7 @@ namespace WindowsCleaner
             grpOptions.Controls.Add(chkThumbnails);
             grpOptions.Controls.Add(chkPrefetch);
             grpOptions.Controls.Add(chkFlushDns);
+            grpOptions.Controls.Add(chkBrowserHistory);
             Controls.Add(grpOptions);
 
             // Advanced options - MEILLEURE PRÉSENTATION
@@ -884,7 +890,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.";
 
-            var msg = $"Windows Cleaner\n\n{author}\n\n{licenseTitle}\n\n{licenseText}\n\nVersion: 2.0.0";
+            var msg = $"Windows Cleaner\n\n{author}\n\n{licenseTitle}\n\n{licenseText}\n\nVersion: 2.0.2";
             MessageBox.Show(msg, "À propos", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
@@ -914,6 +920,7 @@ SOFTWARE.";
             chkRecycle.Checked = select;
             chkSystemTemp.Checked = select;
             chkBrowsers.Checked = select;
+            chkBrowserHistory.Checked = select;
             chkWindowsUpdate.Checked = select;
             chkThumbnails.Checked = select;
             chkPrefetch.Checked = select;
@@ -953,7 +960,7 @@ SOFTWARE.";
         {
             // Vérifier si toutes les options de nettoyage sont cochées
             bool allChecked = chkRecycle.Checked && chkSystemTemp.Checked && chkBrowsers.Checked &&
-                             chkWindowsUpdate.Checked && chkThumbnails.Checked && chkPrefetch.Checked &&
+                             chkBrowserHistory.Checked && chkWindowsUpdate.Checked && chkThumbnails.Checked && chkPrefetch.Checked &&
                              chkFlushDns.Checked && chkOrphanedFiles.Checked && chkClearMemoryCache.Checked &&
                              chkBrokenShortcuts.Checked &&
                              chkVsCodeCache.Checked && chkNugetCache.Checked && chkMavenCache.Checked &&
@@ -963,7 +970,7 @@ SOFTWARE.";
             
             // Vérifier si aucune option n'est cochée
             bool noneChecked = !chkRecycle.Checked && !chkSystemTemp.Checked && !chkBrowsers.Checked &&
-                              !chkWindowsUpdate.Checked && !chkThumbnails.Checked && !chkPrefetch.Checked &&
+                              !chkBrowserHistory.Checked && !chkWindowsUpdate.Checked && !chkThumbnails.Checked && !chkPrefetch.Checked &&
                               !chkFlushDns.Checked && !chkOrphanedFiles.Checked && !chkClearMemoryCache.Checked &&
                               !chkBrokenShortcuts.Checked &&
                               !chkVsCodeCache.Checked && !chkNugetCache.Checked && !chkMavenCache.Checked &&
@@ -1038,6 +1045,7 @@ SOFTWARE.";
                     EmptyRecycleBin = chkRecycle.Checked,
                     IncludeSystemTemp = chkSystemTemp.Checked,
                     CleanBrowsers = chkBrowsers.Checked,
+                    CleanBrowserHistory = chkBrowserHistory.Checked,
                     CleanWindowsUpdate = chkWindowsUpdate.Checked,
                     CleanThumbnails = chkThumbnails.Checked,
                     CleanPrefetch = chkPrefetch.Checked,
@@ -1784,7 +1792,7 @@ SOFTWARE.";
             {
                 // Configurer avec votre dépôt GitHub
                 // Format: "propriétaire", "nom-du-repo"
-                var updateManager = new UpdateManager("christwadel65-ux", "Windows-Cleaner", "2.0.0");
+                var updateManager = new UpdateManager("christwadel65-ux", "Windows-Cleaner", AppVersion.Current);
                 
                 if (silent)
                 {

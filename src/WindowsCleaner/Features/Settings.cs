@@ -21,6 +21,8 @@ namespace WindowsCleaner
         public bool? CleanSystemTemp { get; set; }
         /// <summary>Nettoyer les caches des navigateurs</summary>
         public bool? CleanBrowsers { get; set; }
+        /// <summary>Nettoyer l'historique des navigateurs</summary>
+        public bool? CleanBrowserHistory { get; set; }
         /// <summary>Nettoyer Windows Update</summary>
         public bool? CleanWindowsUpdate { get; set; }
         /// <summary>Nettoyer les vignettes</summary>

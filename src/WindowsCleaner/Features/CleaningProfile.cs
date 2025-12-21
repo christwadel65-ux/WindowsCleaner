@@ -20,6 +20,7 @@ namespace WindowsCleaner
         public bool EmptyRecycleBin { get; set; }
         public bool IncludeSystemTemp { get; set; }
         public bool CleanBrowsers { get; set; }
+        public bool CleanBrowserHistory { get; set; } = true;
         public bool CleanWindowsUpdate { get; set; }
         public bool CleanThumbnails { get; set; }
         public bool CleanPrefetch { get; set; }
@@ -76,7 +77,7 @@ namespace WindowsCleaner
                 EmptyRecycleBin = true,
                 CleanBrowsers = true,
                 CleanThumbnails = true,
-                CleanOrphanedFiles = true,
+                CleanBrowserHistory = true,
                 Verbose = false
             };
         }
@@ -165,6 +166,7 @@ namespace WindowsCleaner
                 EmptyRecycleBin = this.EmptyRecycleBin,
                 IncludeSystemTemp = this.IncludeSystemTemp,
                 CleanBrowsers = this.CleanBrowsers,
+                CleanBrowserHistory = this.CleanBrowserHistory,
                 CleanWindowsUpdate = this.CleanWindowsUpdate,
                 CleanThumbnails = this.CleanThumbnails,
                 CleanPrefetch = this.CleanPrefetch,
