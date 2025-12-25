@@ -35,13 +35,14 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Restore dependencies
+        shell: pwsh
         run: |
           dotnet restore src/WindowsCleaner/WindowsCleaner.csproj
           if ($LASTEXITCODE -ne 0) {
-            echo "::warning::Dependency restoration failed - subsequent steps may not work correctly"
-            exit 0
+            Write-Host "::warning::Dependency restoration failed - subsequent steps may not work correctly"
+          } else {
+            Write-Host "Dependencies restored successfully"
           }
-          echo "Dependencies restored successfully"
         continue-on-error: true
 
       - name: List packages (info only)
