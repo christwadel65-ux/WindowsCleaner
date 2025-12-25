@@ -35,9 +35,14 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Restore dependencies
+        shell: pwsh
         run: |
           dotnet restore src/WindowsCleaner/WindowsCleaner.csproj
-          echo "Dependencies restored successfully"
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "::warning::Dependency restoration failed - subsequent steps may not work correctly"
+          } else {
+            Write-Host "Dependencies restored successfully"
+          }
         continue-on-error: true
 
       - name: List packages (info only)
@@ -49,7 +54,7 @@ jobs:
       - name: Check vulnerable packages (optional)
         run: |
           echo "Checking for vulnerabilities..."
-          dotnet list src/WindowsCleaner/WindowsCleaner.csproj package --vulnerable --include-transitive || echo "No vulnerabilities found or check not available"
+          dotnet list src/WindowsCleaner/WindowsCleaner.csproj package --vulnerable --include-transitive || echo "Vulnerability check failed or unavailable"
         continue-on-error: true
 
   codeql:
